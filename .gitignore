@@ -1,3 +1,19 @@
+# SSH Keys
+id_rsa
+id_rsa.pub
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.pfx
+*.p12
+
+# Custom SSH keys accidentally generated
+q
+q.pub
+known_hosts
+known_hosts.pub
 # Byte-compiled / cache files
 __pycache__/
 *.py[cod]
