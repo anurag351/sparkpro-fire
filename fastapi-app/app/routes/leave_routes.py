@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from ..core.database import get_session
 from ..models.leave import Leave, LeaveStatusEnum
 from ..models.audit import AuditLog
-from ..schemas.leave_schema import LeaveRequest, LeaveApproval, LeaveOut
+from ..schemas.leave_schema import LeaveRequest,LeaveApproval,  LeaveOut
 
 router = APIRouter(prefix="/leave", tags=["leave"])
 

@@ -10,4 +10,4 @@ class SalaryOut(BaseModel):
     total_pay: float
 
     class Config:
-        orm_mode = True
+        from_attributes = True

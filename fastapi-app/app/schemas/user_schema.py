@@ -1,32 +1,15 @@
+# app/schemas/user_schema.py
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
 
-class UserBase(BaseModel):
+class UserCreate(BaseModel):
     username: str
     email: EmailStr
-    role: str
-
-class UserCreate(UserBase):
     password: str
 
-class UserOut(UserBase):
+class UserOut(BaseModel):
     id: int
-    is_active: bool
-
+    username: str
+    email: EmailStr
     class Config:
-        orm_mode = True
-
-class PasswordResetRequestCreate(BaseModel):
-    user_id: int
-
-class PasswordResetRequestOut(BaseModel):
-    id: int
-    user_id: int
-    requested_at: datetime
-    approved_by: Optional[int]
-    is_approved: bool
-    is_used: bool
-
-    class Config:
-        orm_mode = True
+        from_attributes = True

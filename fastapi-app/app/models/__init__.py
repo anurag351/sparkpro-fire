@@ -1,9 +1,10 @@
-# This file is intentionally left blank.
 # app/models/__init__.py
-# Import models so alembic / create_all can find them
-from .employee import Employee
+# import modules so SQLAlchemy sees them before metadata.create_all
+from .user import User
+from .reset_request import ResetRequest
+from .employee import Employee, RoleEnum
 from .attendance import Attendance
 from .leave import Leave
+from .project import Project, ProjectAssignment
 from .salary import Salary
 from .audit import AuditLog
-from .user import User  # optional user table if you want auth DB table

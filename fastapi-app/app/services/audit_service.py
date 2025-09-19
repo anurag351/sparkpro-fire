@@ -1,28 +1,15 @@
 # app/services/audit_service.py
-# Functions for logging audit entries.
-from sqlalchemy.orm import Session
+import json
 from app.models.audit import AuditLog
+from sqlalchemy.ext.asyncio import AsyncSession
 
-def log_audit(
-    db: Session,
-    entity_type: str,
-    entity_id: int,
-    action: str,
-    performed_by: int,
-    comments: str = None,
-    old_data: str = None,
-    new_data: str = None
-):
-    log_entry = AuditLog(
+async def write_audit(db: AsyncSession, entity_type: str, entity_id: str | int | None, action: str, performed_by: int | None, details: dict | None = None):
+    rec = AuditLog(
         entity_type=entity_type,
-        entity_id=entity_id,
+        entity_id=str(entity_id) if entity_id is not None else None,
         action=action,
         performed_by=performed_by,
-        comments=comments,
-        old_data=old_data,
-        new_data=new_data
+        details=json.dumps(details) if details else None
     )
-    db.add(log_entry)
-    db.commit()
-    db.refresh(log_entry)
-    return log_entry
+    db.add(rec)
+    await db.commit()

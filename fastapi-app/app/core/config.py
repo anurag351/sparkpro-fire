@@ -1,10 +1,19 @@
-# app/core/config.py
 from pydantic_settings import BaseSettings
+
+
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:Anurag@localhost:5432/sparkpro"
-    HIDDEN_MD_ID: int = 1
+    PROJECT_NAME: str = "SparkPro Fire Controls API"
+
+    # Database URL: use .env in real setup
+    DATABASE_URL: str = "sqlite+aiosqlite:///./test.db"
+    # Example for Postgres (set in .env instead):
+    # DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@localhost:5432/sparkpro
+
+    TEMP_PW_EXPIRES_MINUTES: int = 60
+    DEBUG: bool = True
 
     class Config:
         env_file = ".env"
+
 
 settings = Settings()
