@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # FastAPI Application
 
 This is a simple FastAPI application that serves as a starting point for building APIs.
@@ -57,3 +58,6 @@ You can access the API documentation at `http://127.0.0.1:8000/docs`.
 ## License
 
 This project is licensed under the MIT License.
+=======
+# sparkpro-fire
+>>>>>>> f70c423ea317052a87780c65507380943615ae44
