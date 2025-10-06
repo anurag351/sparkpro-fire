@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from app.core.database import init_db
 from app.routes import register_routes
 from app.routes import *
+from fastapi.responses import FileResponse
+from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.staticfiles import StaticFiles
