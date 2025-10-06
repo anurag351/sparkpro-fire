@@ -3,7 +3,7 @@ from app.models.audit import AuditLog
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-# ✅ Insert new audit log
+# Insert new audit log
 async def log_audit(
     db: AsyncSession,
     entity_type: str,
@@ -24,14 +24,14 @@ async def log_audit(
     await db.refresh(log)
     return log
 
-# ✅ Get all audit logs (with pagination)
+# Get all audit logs (with pagination)
 async def get_all_audits(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(
         select(AuditLog).offset(skip).limit(limit)
     )
     return result.scalars().all()
 
-# ✅ Get audits for a specific entity (Employee / Request etc.)
+# Get audits for a specific entity (Employee / Request etc.)
 async def get_audits_by_entity(db: AsyncSession, entity_type: str, entity_id: str):
     result = await db.execute(
         select(AuditLog).where(
@@ -41,7 +41,7 @@ async def get_audits_by_entity(db: AsyncSession, entity_type: str, entity_id: st
     )
     return result.scalars().all()
 
-# ✅ Get audits performed by a specific user
+# Get audits performed by a specific user
 async def get_audits_by_user(db: AsyncSession, performed_by: str):
     result = await db.execute(
         select(AuditLog).where(AuditLog.performed_by == performed_by)

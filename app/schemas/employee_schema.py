@@ -46,6 +46,7 @@ class EmployeeCreate(BaseModel):
 class EmployeeResponse(EmployeeCreate):
     serial_no: int
     is_active: bool
+    id:str
 
 class EmployeeOut(BaseModel):
     id: str

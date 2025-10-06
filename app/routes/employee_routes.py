@@ -2,17 +2,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
-from app.schemas.employee_schema import EmployeeCreate, EmployeeOut
+from app.schemas.employee_schema import EmployeeCreate, EmployeeOut,EmployeeResponse
 from app.models.employee import RoleEnum
 from app.services.employee_service import *
 router = APIRouter(prefix="/employees", tags=["employees"])
 
-@router.post("/", response_model=EmployeeOut)
-async def create_employee(payload: EmployeeCreate, db: AsyncSession = Depends(get_session)):
-    emp = await create_employee_service(db, payload)
+@router.post("/createdBy/{createdBy}", response_model=EmployeeOut)
+async def create_employee(createdBy:str, payload: EmployeeCreate, db: AsyncSession = Depends(get_session)):
+    emp = await create_employee_service(db, payload,createdBy)
     return emp
 
-@router.get("/employeeID/{employee_id}", response_model=EmployeeOut)
+@router.get("/employeeID/{employee_id}", response_model=EmployeeResponse)
 async def get_employee(employee_id: str, db: AsyncSession = Depends(get_session)):
     emp = await get_employee_by_id(db, employee_id)
     if not emp:
@@ -27,12 +27,12 @@ async def get_all_employees(db: AsyncSession = Depends(get_session)):
 # Get all managers
 @router.get("/managers", response_model=list[EmployeeOut])
 async def get_managers(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.MANAGER)
+    return await get_employees_by_role_service(db, RoleEnum.Manager)
 
 # Get all Employee
 @router.get("/employee", response_model=list[EmployeeOut])
 async def get_managers(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.EMPLOYEE)
+    return await get_employees_by_role_service(db, RoleEnum.Employee)
 
 # Get all APDs
 
@@ -71,3 +71,4 @@ async def upload_employee_photo(
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+

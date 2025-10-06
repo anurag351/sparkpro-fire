@@ -15,6 +15,9 @@ class LeaveBase(BaseModel):
     reason: Optional[str]
     start_date: date
     end_date: date
+    reason: Optional[str]
+    approver_l1: Optional[str] = None
+    approver_l2: Optional[str] = None
 
 class LeaveCreate(LeaveBase):
     approver_l1: str  # always required at creation

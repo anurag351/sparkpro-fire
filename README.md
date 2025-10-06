@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # FastAPI Application
 
 This is a simple FastAPI application that serves as a starting point for building APIs.
@@ -20,17 +19,20 @@ fastapi-app
 ## Setup Instructions
 
 1. **Clone the repository:**
+
    ```
    git clone <repository-url>
    cd fastapi-app
    ```
 
 2. **Create a virtual environment:**
+
    ```
    python -m venv venv
    ```
 
 3. **Activate the virtual environment:**
+
    - On Windows:
      ```
      venv\Scripts\activate
@@ -58,6 +60,3 @@ You can access the API documentation at `http://127.0.0.1:8000/docs`.
 ## License
 
 This project is licensed under the MIT License.
-=======
-# sparkpro-fire
->>>>>>> f70c423ea317052a87780c65507380943615ae44

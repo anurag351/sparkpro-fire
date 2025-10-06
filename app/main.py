@@ -23,7 +23,7 @@ origins = [
 app = FastAPI(title="SparkPro Fire Controls API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # List of origins
+    allow_origins=["*"],   # List of origins
     allow_credentials=True,
     allow_methods=["*"],     # ["GET", "POST", "PUT", "DELETE"] bhi de sakte ho
     allow_headers=["*"],     # All headers allow
@@ -32,10 +32,12 @@ app.include_router(employee_routes.router)
 app.include_router(user_routes.router)
 register_routes(app)
 UPLOAD_DIR = "uploads/passports"
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # serve files from /static/passports/<filename>
 app.mount("/static/passports", StaticFiles(directory=UPLOAD_DIR), name="passports")
+app.mount("/", StaticFiles(directory="frontend/build", html=True), name="static")
 @app.get("/")
 async def root():
     return {"msg": "SparkPro prototype API running"}
