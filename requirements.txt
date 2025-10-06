@@ -14,9 +14,6 @@ psycopg2-binary
 pydantic==2.9.2
 pydantic-settings==2.3.4
 
-# --- Alembic for DB migrations (optional but recommended) ---
-alembic==1.14.0
-
 # --- Authentication & Security ---
 passlib[bcrypt]==1.7.4
 python-jose==3.3.0
