@@ -41,3 +41,7 @@ app.mount("/", StaticFiles(directory="frontend/build", html=True), name="static"
 @app.get("/")
 async def root():
     return {"msg": "SparkPro prototype API running"}
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    file_path = os.path.join("frontend/build", "index.html")
+    return FileResponse(file_path)
