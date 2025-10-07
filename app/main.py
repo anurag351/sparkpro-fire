@@ -43,7 +43,7 @@ app.mount("/static/passports", StaticFiles(directory=UPLOAD_DIR), name="passport
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend" / "build"
 # Serve static files (js/css/images)
 app.mount("/static", StaticFiles(directory=frontend_dir / "static"), name="static")
-@app.get("/")
+@app.get("/api")
 async def root():
     return {"msg": "SparkPro prototype API running"}
 @app.get("/{full_path:path}")
