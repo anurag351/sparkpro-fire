@@ -8,8 +8,6 @@ uvicorn[standard]==0.30.1
 # --- Database & ORM (Async) ---
 SQLAlchemy==2.0.34
 aiosqlite==0.20.0
-asyncpg==0.29.0  # optional, if you switch to PostgreSQL later
-psycopg2-binary
 # --- Pydantic (Data Validation) ---
 pydantic==2.9.2
 pydantic-settings==2.3.4
@@ -17,6 +15,7 @@ pydantic-settings==2.3.4
 # --- Authentication & Security ---
 passlib[bcrypt]==1.7.4
 python-jose==3.3.0
+pillow==11.3.0
 
 # --- Utilities ---
 python-multipart==0.0.9

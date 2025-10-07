@@ -38,6 +38,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # serve files from /static/passports/<filename>
 app.mount("/static/passports", StaticFiles(directory=UPLOAD_DIR), name="passports")
 app.mount("/", StaticFiles(directory="frontend/build", html=True), name="static")
-@app.get("/")
+@app.get("/api")
 async def root():
     return {"msg": "SparkPro prototype API running"}
