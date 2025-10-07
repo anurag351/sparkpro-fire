@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from app.core.database import init_db
 from app.routes import register_routes
 from app.routes import *
+from fastapi.responses import FileResponse
+from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.staticfiles import StaticFiles
@@ -37,7 +39,15 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # serve files from /static/passports/<filename>
 app.mount("/static/passports", StaticFiles(directory=UPLOAD_DIR), name="passports")
-app.mount("/", StaticFiles(directory="frontend/build", html=True), name="static")
+# Path to frontend build
+frontend_dir = Path(__file__).resolve().parent.parent / "frontend" / "build"
+# Serve static files (js/css/images)
+app.mount("/static", StaticFiles(directory=frontend_dir / "static"), name="static")
 @app.get("/api")
 async def root():
     return {"msg": "SparkPro prototype API running"}
+@app.get("/{full_path:path}")
+# Catch-all route for React Router
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    return FileResponse(frontend_dir / "index.html")
