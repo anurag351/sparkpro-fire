@@ -228,3 +228,51 @@ def _to_date(value):
         return datetime.strptime(value, "%Y-%m-%d").date()
     except Exception:
         raise HTTPException(status_code=400, detail=f"Invalid date format: {value}. Expected YYYY-MM-DD.")
+
+async def update_leave_status_service(
+    db, leave_id: int, new_status: str, performed_by: str, comment: str = None
+):
+    """
+    Approve or Reject a leave request.
+    Updates the leave status and logs the action in audit logs.
+    """
+
+    # 🔹 Validate the performer
+    performer_result = await db.execute(select(Employee).where(Employee.id == performed_by))
+    performer = performer_result.scalar_one_or_none()
+    if not performer:
+        raise HTTPException(status_code=404, detail=f"Performer employee {performed_by} not found")
+
+    # 🔹 Fetch the leave
+    leave_result = await db.execute(select(Leave).where(Leave.id == leave_id))
+    leave = leave_result.scalar_one_or_none()
+    if not leave:
+        raise HTTPException(status_code=404, detail=f"Leave with ID {leave_id} not found")
+
+    # 🔹 Check if already approved or rejected
+    if leave.status in [LeaveStatusEnum.APPROVED, LeaveStatusEnum.REJECTED]:
+        raise HTTPException(status_code=400, detail=f"Leave already {leave.status}")
+
+    # 🔹 Update status
+    if new_status not in ["Approved", "Rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status — must be 'Approved' or 'Rejected'")
+
+    leave.status = new_status
+    leave.review_comment = comment or f"Leave {new_status.lower()} by {performed_by}"
+    leave.approver_l1 = performed_by  # mark who took the action
+
+    await db.commit()
+    await db.refresh(leave)
+
+    # 🔹 Write to audit log
+    performByDetail = f"{performer.name} ({performer.id})"
+    await write_audit(
+        db,
+        entity_type="Leave",
+        entity_id=leave.employee_id,
+        action=new_status.upper(),
+        performed_by=performByDetail,
+        comment=f"Leave {new_status} by {performByDetail} for {leave.employee_id}",
+    )
+
+    return {"message": f"Leave {new_status} successfully", "leave_id": leave.id, "status": leave.status}

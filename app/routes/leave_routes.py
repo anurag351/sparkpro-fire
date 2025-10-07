@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends,Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.core.database import get_session as get_db
-from app.schemas.leave_schema import LeaveCreate, LeaveUpdate, LeaveResponse
+from app.schemas.leave_schema import LeaveCreate, LeaveUpdate, LeaveResponse,LeaveReject
 from app.services import leave_service
 
 router = APIRouter(prefix="/leaves", tags=["Leaves"])
@@ -40,3 +40,19 @@ async def export_leave(
     db: AsyncSession = Depends(get_db),
 ):
     return await leave_service.export_leave_service(db, start_date, end_date, employee_id, status)
+
+@router.put("/updateStatus/{leave_id}/by/{performed_by}")
+async def update_leave_status(
+    leave_id: int,
+    performed_by: str,
+    payload: LeaveReject,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Approve or Reject Leave by ID.
+    Example:
+      PUT /leaves/updateStatus/5/by/MA000003
+    """
+    return await leave_service.update_leave_status_service(
+        db, leave_id, payload.status, performed_by, payload.review_comment
+    )

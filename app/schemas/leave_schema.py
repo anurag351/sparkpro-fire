@@ -6,9 +6,9 @@ from app.models.leave import LeaveStatusEnum
 from enum import Enum
 
 class LeaveStatusEnum(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+    PENDING = "Pending"
+    APPROVED = "Approved"
+    REJECTED = "Rejected"
 
 class LeaveBase(BaseModel):
     employee_id: str
@@ -24,13 +24,18 @@ class LeaveCreate(LeaveBase):
 
 class LeaveUpdate(BaseModel):
     reason: Optional[str]
+    review_comment:Optional[str]
     start_date: Optional[date]
     end_date: Optional[date]
+class LeaveReject(BaseModel):
+    review_comment: str
+    status: LeaveStatusEnum
 
 class LeaveResponse(BaseModel):
     id: int
     employee_id: str
     reason: Optional[str]
+    review_comment:Optional[str]
     status: LeaveStatusEnum
     start_date: date
     end_date: date

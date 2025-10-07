@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from datetime import date
 from app.core.database import get_session as get_db
-from app.schemas.attendance_schema import AttendanceCreate, AttendanceResponse,AttendanceUpdate
+from app.schemas.attendance_schema import AttendanceCreate, AttendanceResponse,AttendanceUpdate,AttendanceReject
 from app.services import attendance_service
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
@@ -94,8 +94,8 @@ async def approve_attendance(attendance_id: int, db: AsyncSession = Depends(get_
 
 
 @router.post("/{attendance_id}/reject/{user}", response_model=AttendanceResponse)
-async def reject_attendance(attendance_id: int, db: AsyncSession = Depends(get_db), user: str = "system"):
+async def reject_attendance(attendance_id: int, attendanceReject:AttendanceReject, db: AsyncSession = Depends(get_db), user: str = "system"):
     """
     Reject an attendance record
     """
-    return await attendance_service.update_attendance_status(db, attendance_id, "Rejected", user)
+    return await attendance_service.update_attendance_status(db, attendance_id,attendanceReject.review_comment, "Rejected", user)

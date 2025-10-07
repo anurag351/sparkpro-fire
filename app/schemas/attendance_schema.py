@@ -10,6 +10,9 @@ class AttendanceBase(BaseModel):
     time_out: time
     approved_by: str
 
+class AttendanceReject(BaseModel):
+    review_comment: str
+
 class AttendanceUpdate(BaseModel):
     employee_id: str
     date: date

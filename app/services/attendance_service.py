@@ -334,7 +334,7 @@ async def export_attendance_service(db, start_date: str, end_date: str, employee
         }
     )
 
-async def update_attendance_status(db: AsyncSession, attendance_id: int, status: str, updated_by: str):
+async def update_attendance_status(db: AsyncSession, attendance_id: int,review_comment:str, status: str, updated_by: str):
     # Fetch record
     result = await db.execute(select(Attendance).where(Attendance.id == attendance_id))
     attendance = result.scalar_one_or_none()
@@ -344,6 +344,7 @@ async def update_attendance_status(db: AsyncSession, attendance_id: int, status:
 
     # Update status
     attendance.status = status
+    attendance.review_comment=review_comment
     attendance.updated_at = datetime.utcnow()
 
     # Add log entry

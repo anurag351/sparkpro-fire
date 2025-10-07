@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SparkPro Fire Controls API"
 
     # Database URL: use .env in real setup
-    DATABASE_URL: str = "sqlite+aiosqlite:///./sparkpro.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./test5.db"
     # Example for Postgres (set in .env instead):
     #DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@localhost:5432/sparkpro
     FRONTEND_BUILD_DIR: str = "frontend/build"
