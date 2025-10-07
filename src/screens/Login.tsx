@@ -11,8 +11,9 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import ConfirmDialog from "../utility/ConfirmDialog";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { API_ENDPOINTS } from "../config";
+import ResponsiveAppBar from "../components/NavigationHome";
 
 const Login: React.FC = () => {
   const [username, setusername] = useState("");
@@ -115,6 +116,8 @@ const Login: React.FC = () => {
     } catch (err: any) {
       console.error("Login failed:", err);
       setError("Login failed. Please check credentials.");
+      setError("Login failed. Please check credentials.");
+      alert(err.message || "Login failed. Please try again.");
     } finally {
       setLoading(false); // stop loader
     }
@@ -136,115 +139,118 @@ const Login: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        height: "100vh",
-        bgcolor: "#f0f0f0",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        p: 2,
-      }}
-    >
-      <Card
+    <>
+      <ResponsiveAppBar />
+      <Box
         sx={{
-          maxWidth: 400,
-          width: "100%",
-          bgcolor: "background.paper",
-          boxShadow: 6,
-          zIndex: 10,
-          padding: 3,
+          height: "100vh",
+          bgcolor: "#f0f0f0",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          p: 2,
         }}
       >
-        <CardContent>
-          <Typography variant="h5" align="center" gutterBottom>
-            Login
-          </Typography>
+        <Card
+          sx={{
+            maxWidth: 400,
+            width: "100%",
+            bgcolor: "background.paper",
+            boxShadow: 6,
+            zIndex: 10,
+            padding: 3,
+          }}
+        >
+          <CardContent>
+            <Typography variant="h5" align="center" gutterBottom>
+              Login
+            </Typography>
 
-          <Stack spacing={2}>
-            {/* Employee ID */}
-            <TextField
-              label="Employee ID"
-              fullWidth
-              value={username}
-              onChange={handleusernameChange}
-              error={!!errors.username}
-              helperText={errors.username}
-            />
+            <Stack spacing={2}>
+              {/* Employee ID */}
+              <TextField
+                label="Employee ID"
+                fullWidth
+                value={username}
+                onChange={handleusernameChange}
+                error={!!errors.username}
+                helperText={errors.username}
+              />
 
-            {/* Password */}
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              value={password}
-              onChange={handlePasswordChange}
-              error={!!errors.password}
-              helperText={errors.password}
-            />
+              {/* Password */}
+              <TextField
+                label="Password"
+                type="password"
+                fullWidth
+                value={password}
+                onChange={handlePasswordChange}
+                error={!!errors.password}
+                helperText={errors.password}
+              />
 
-            {/* Login button */}
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={handleLogin}
-            >
-              {loading ? (
-                <CircularProgress size={24} sx={{ color: "white" }} />
-              ) : (
-                "Login"
-              )}
-            </Button>
+              {/* Login button */}
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                onClick={handleLogin}
+              >
+                {loading ? (
+                  <CircularProgress size={24} sx={{ color: "white" }} />
+                ) : (
+                  "Login"
+                )}
+              </Button>
 
-            {/* Request new password */}
-            <Button
-              fullWidth
-              variant="outlined"
-              color="secondary"
-              onClick={() => setDialogOpen(true)}
-              disabled={loading}
-            >
-              Request New Password
-            </Button>
+              {/* Request new password */}
+              <Button
+                fullWidth
+                variant="outlined"
+                color="secondary"
+                onClick={() => setDialogOpen(true)}
+                disabled={loading}
+              >
+                Request New Password
+              </Button>
 
-            {/* Reset Password */}
-            <Button
-              fullWidth
-              variant="contained"
-              color="secondary"
-              onClick={() => navigate("/resetPassword")}
-              disabled={loading}
-            >
-              Reset Password
-            </Button>
-          </Stack>
-        </CardContent>
-      </Card>
+              {/* Reset Password */}
+              <Button
+                fullWidth
+                variant="contained"
+                color="secondary"
+                onClick={() => navigate("/resetPassword")}
+                disabled={loading}
+              >
+                Reset Password
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
 
-      {/* Confirm Dialog */}
-      <ConfirmDialog
-        open={dialogOpen}
-        title="Password Request"
-        message={`Agar aap password bhul gaye hai to Request Password kijiye aur Apne Manager se Temporary password prapt kijiye aur uske baad Reset Password karke naya password set kijiye.\nAfter creating new password aap portal par dubara login kijiye.`}
-        onConfirm={async () => {
-          setDialogLoading(true);
-          try {
-            const result: any = await requestPasswordAPI(username);
-            if (result.success) {
-              alert("Password request submitted!");
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          open={dialogOpen}
+          title="Password Request"
+          message={`Agar aap password bhul gaye hai to Request Password kijiye aur Apne Manager se Temporary password prapt kijiye aur uske baad Reset Password karke naya password set kijiye.\nAfter creating new password aap portal par dubara login kijiye.`}
+          onConfirm={async () => {
+            setDialogLoading(true);
+            try {
+              const result: any = await requestPasswordAPI(username);
+              if (result.success) {
+                alert("Password request submitted!");
+              }
+            } catch (err) {
+              alert("Failed to submit request!");
+            } finally {
+              setDialogLoading(false);
+              setDialogOpen(false);
             }
-          } catch (err) {
-            alert("Failed to submit request!");
-          } finally {
-            setDialogLoading(false);
-            setDialogOpen(false);
-          }
-        }}
-        onCancel={() => setDialogOpen(false)}
-        loading={dialogLoading} // pass loading state
-      />
-    </Box>
+          }}
+          onCancel={() => setDialogOpen(false)}
+          loading={dialogLoading} // pass loading state
+        />
+      </Box>
+    </>
   );
 };
 

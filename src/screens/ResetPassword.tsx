@@ -8,6 +8,7 @@ import {
   Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import ResponsiveAppBar from "../components/NavigationHome";
 
 const ResetPassword: React.FC = () => {
   const [employeeId, setEmployeeId] = useState("");
@@ -64,90 +65,93 @@ const ResetPassword: React.FC = () => {
   };
 
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      minHeight="100vh"
-      bgcolor="#f5f5f5"
-    >
-      <Card
-        sx={{
-          width: 400,
-          p: 2,
-          boxShadow: 6,
-          zIndex: 5,
-          backgroundColor: "background.paper", // light pink solid
-        }}
+    <>
+      <ResponsiveAppBar />
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+        bgcolor="#f5f5f5"
       >
-        <CardContent>
-          <Typography variant="h5" align="center" gutterBottom>
-            Reset Password
-          </Typography>
-
-          {error && (
-            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-              {error}
+        <Card
+          sx={{
+            width: 400,
+            p: 2,
+            boxShadow: 6,
+            zIndex: 5,
+            backgroundColor: "background.paper", // light pink solid
+          }}
+        >
+          <CardContent>
+            <Typography variant="h5" align="center" gutterBottom>
+              Reset Password
             </Typography>
-          )}
 
-          <TextField
-            fullWidth
-            label="Employee ID"
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            margin="normal"
-          />
+            {error && (
+              <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                {error}
+              </Typography>
+            )}
 
-          <TextField
-            fullWidth
-            label="Old Password"
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            margin="normal"
-          />
+            <TextField
+              fullWidth
+              label="Employee ID"
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+              margin="normal"
+            />
 
-          <TextField
-            fullWidth
-            label="New Password"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            margin="normal"
-          />
+            <TextField
+              fullWidth
+              label="Old Password"
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              margin="normal"
+            />
 
-          <TextField
-            fullWidth
-            label="Confirm New Password"
-            type="password"
-            value={confirmNewPassword}
-            onChange={(e) => setConfirmNewPassword(e.target.value)}
-            margin="normal"
-          />
+            <TextField
+              fullWidth
+              label="New Password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              margin="normal"
+            />
 
-          <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-            onClick={handleContinue}
-          >
-            Continue
-          </Button>
+            <TextField
+              fullWidth
+              label="Confirm New Password"
+              type="password"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
+              margin="normal"
+            />
 
-          <Button
-            fullWidth
-            variant="outlined"
-            color="secondary"
-            sx={{ mt: 3 }}
-            onClick={handleBack}
-          >
-            Back to Login
-          </Button>
-        </CardContent>
-      </Card>
-    </Box>
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={handleContinue}
+            >
+              Continue
+            </Button>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              color="secondary"
+              sx={{ mt: 3 }}
+              onClick={handleBack}
+            >
+              Back to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </Box>
+    </>
   );
 };
 

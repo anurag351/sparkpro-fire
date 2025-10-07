@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import {
   Box,
   Button,
@@ -19,6 +19,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import {
   LocalizationProvider,
@@ -29,15 +31,23 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { Edit, Delete, GetApp } from "@mui/icons-material";
 import Navigation from "../components/Navigation";
-
+import { API_ENDPOINTS } from "../config";
+import ExportDialog from "../components/ExportDialogProps";
+import { GridDeleteForeverIcon } from "@mui/x-data-grid";
+import ConfirmDialog from "../components/ConfirmDialogDynamic";
+const EditAttendanceDialog = lazy(
+  () => import("../components/EditAttendanceDialog")
+);
 interface EmployeeInfo {
   id: string;
   name: string;
   role: string;
+  manager_id: string;
 }
 
 interface AttendanceForm {
   id?: number;
+  employee_id?: string;
   date: Dayjs | null;
   time_in: Dayjs | null;
   time_out: Dayjs | null;
@@ -45,20 +55,18 @@ interface AttendanceForm {
 
 interface AttendanceRow {
   id: number;
+  employee_id: string;
   date: string;
   time_in: string;
   time_out: string;
-  status: string;
+  status: "Approved" | "Pending" | "Rejected";
   review_comment: string;
+  approved_by: string;
 }
 
 export default function AttendanceUpdate() {
-  const [employee, setEmployee] = useState<EmployeeInfo>({
-    id: "EMP001",
-    name: "John Doe",
-    role: "Employee",
-  });
-
+  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+  const [employee, setEmployee] = useState<EmployeeInfo>(userData);
   const [form, setForm] = useState<AttendanceForm>({
     date: dayjs(),
     time_in: null,
@@ -76,24 +84,24 @@ export default function AttendanceUpdate() {
   const [editOpen, setEditOpen] = useState(false); // NEW for Edit Popup
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  const [loading, setLoading] = useState(false);
+  const DGDeleteIcon = GridDeleteForeverIcon as unknown as React.ElementType;
 
   useEffect(() => {
     // Fetch employee info
-    setEmployee({
-      id: "EMP001",
-      name: "John Doe",
-      role: "Employee",
-    });
+    setEmployee(userData);
 
     fetchAttendance();
   }, []);
 
   const fetchAttendance = async () => {
     // TODO: replace with your real API
-    const res = await fetch(`/attendance/employee/${employee.id}`);
+    const res = await fetch(API_ENDPOINTS.viewAttendanceByID(userData.id));
     if (res.ok) {
       const data = await res.json();
       setAttendanceData(data);
+    } else {
+      setAttendanceData([]);
     }
   };
 
@@ -118,15 +126,24 @@ export default function AttendanceUpdate() {
         date: form.date.format("YYYY-MM-DD"),
         time_in: form.time_in.format("HH:mm:ss"),
         time_out: form.time_out.format("HH:mm:ss"),
+        approved_by: employee.manager_id,
       };
 
-      const res = await fetch("/attendance/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        API_ENDPOINTS.addAttendance(payload.employee_id),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        const message =
+          errorData?.detail || errorData?.message || `Error ${res.status}`;
+        throw new Error(message);
+      }
 
       setToast({
         open: true,
@@ -147,6 +164,7 @@ export default function AttendanceUpdate() {
   // OPEN EDIT POPUP
   const handleEdit = (row: AttendanceRow) => {
     setForm({
+      employee_id: row.employee_id,
       id: row.id,
       date: dayjs(row.date),
       time_in: dayjs(row.time_in, "HH:mm:ss"),
@@ -161,19 +179,27 @@ export default function AttendanceUpdate() {
 
     try {
       const payload = {
-        employee_id: employee.id,
-        date: form.date.format("YYYY-MM-DD"), // still required
+        employee_id: form.employee_id,
+        date: form.date.format("YYYY-MM-DD"),
         time_in: form.time_in.format("HH:mm:ss"),
         time_out: form.time_out.format("HH:mm:ss"),
       };
 
-      const res = await fetch(`/attendance/${form.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        API_ENDPOINTS.editAttendance(employee.id, payload.date),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        const message =
+          errorData?.detail || errorData?.message || `Error ${res.status}`;
+        throw new Error(message);
+      }
 
       setToast({
         open: true,
@@ -195,19 +221,32 @@ export default function AttendanceUpdate() {
   // DELETE
   // --- Add State ---
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteData, setDeleteData] = useState<AttendanceRow | null>(null);
 
   // --- Modify handleDelete ---
-  const handleDeleteClick = (id: number) => {
-    setDeleteId(id);
+  const handleDeleteClick = (row: any) => {
+    setDeleteData(row);
     setDeleteOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteData) return;
     try {
-      const res = await fetch(`/attendance/${deleteId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      const res = await fetch(
+        API_ENDPOINTS.deleteAttendanceByID(
+          deleteData.employee_id,
+          deleteData.date
+        ),
+        {
+          method: "DELETE",
+        }
+      );
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        const message =
+          errorData?.detail || errorData?.message || `Error ${res.status}`;
+        throw new Error(message);
+      }
 
       setToast({ open: true, type: "success", msg: "Deleted Successfully" });
       fetchAttendance();
@@ -215,37 +254,7 @@ export default function AttendanceUpdate() {
       setToast({ open: true, type: "error", msg: "Delete Failed" });
     } finally {
       setDeleteOpen(false);
-      setDeleteId(null);
-    }
-  };
-
-  // EXPORT
-  const handleExport = async () => {
-    if (!startDate || !endDate) {
-      setToast({ open: true, type: "error", msg: "Please select dates" });
-      return;
-    }
-
-    try {
-      const res = await fetch(
-        `/attendance/export?employee_id=${employee.id}&start=${startDate.format(
-          "YYYY-MM-DD"
-        )}&end=${endDate.format("YYYY-MM-DD")}`
-      );
-      if (!res.ok) throw new Error("Export failed");
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "attendance.xlsx";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      setExportOpen(false);
-    } catch {
-      setToast({ open: true, type: "error", msg: "Export Failed" });
+      setDeleteData(null);
     }
   };
 
@@ -254,15 +263,14 @@ export default function AttendanceUpdate() {
       <Navigation />
 
       {/* Top Card */}
+
       <Card
         elevation={8}
         sx={{
           zIndex: 1200,
-          m: 3,
+          m: 4,
           p: 3,
           borderRadius: 2,
-          width: "90%",
-          mx: "auto",
           mt: 5,
         }}
       >
@@ -272,15 +280,22 @@ export default function AttendanceUpdate() {
           </Typography>
 
           {/* Static Employee Info */}
-          <Box sx={{ display: "flex", gap: 4, mt: 3 }}>
-            <Typography>
-              <strong>Employee ID:</strong> {employee.id}
-            </Typography>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
+              gap: 4, // space between columns
+              mt: 3,
+            }}
+          >
             <Typography>
               <strong>Name:</strong> {employee.name}
             </Typography>
             <Typography>
               <strong>Role:</strong> {employee.role}
+            </Typography>
+            <Typography>
+              <strong>Manager:</strong> {employee.manager_id}
             </Typography>
           </Box>
 
@@ -346,162 +361,160 @@ export default function AttendanceUpdate() {
 
       {/* Table Card */}
       <Card
-        elevation={2}
+        elevation={9}
         sx={{
           zIndex: 1200,
           mt: 0,
+          m: 4,
           p: 3,
           borderRadius: 2,
-          width: "90%",
-          mx: "auto",
         }}
       >
         <CardContent>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Time In</TableCell>
-                  <TableCell>Time Out</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Review Comment</TableCell>
-                  <TableCell>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {attendanceData.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell>{row.date}</TableCell>
-                    <TableCell>{row.time_in}</TableCell>
-                    <TableCell>{row.time_out}</TableCell>
-                    <TableCell>{row.status}</TableCell>
-                    <TableCell>{row.review_comment}</TableCell>
-                    <TableCell>
-                      {row.status === "Pending" && (
-                        <>
-                          <IconButton
-                            color="primary"
-                            onClick={() => handleEdit(row)}
-                          >
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            color="error"
-                            onClick={() => handleDeleteClick(row.id)}
-                          >
-                            <Delete />
-                          </IconButton>{" "}
-                          <IconButton
-                            color="error"
-                            onClick={() => handleDeleteClick(row.id)}
-                          >
-                            <Delete />
-                          </IconButton>
-                        </>
-                      )}
+          {attendanceData?.length > 0 ? (
+            <TableContainer>
+              <Table>
+                <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Time In</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Time Out</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Review Comment
                     </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {attendanceData.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>{row.date}</TableCell>
+                      <TableCell>{row.time_in}</TableCell>
+                      <TableCell>{row.time_out}</TableCell>
+                      <TableCell>{row.status}</TableCell>
+                      <TableCell>{row.review_comment}</TableCell>
+                      <TableCell>
+                        {row.status === "Pending" && (
+                          <>
+                            <Tooltip title="Edit Attendance">
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleEdit(row)}
+                              >
+                                <Edit />
+                              </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Delete Attendance">
+                              <IconButton
+                                color="error"
+                                onClick={() => handleDeleteClick(row)}
+                              >
+                                <Delete />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <div className="text-center text-gray-500 py-4">
+              No attendance found for this employee
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} sx={{ p: 3 }}>
-        <DialogTitle>Edit Attendance</DialogTitle>
-        <Divider sx={{ ml: 3, mr: 3 }} />
-        <DialogContent sx={{ p: 3 }}>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DatePicker
-              label="Date"
-              value={form.date}
-              disabled
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-            <TimePicker
-              label="Time In"
-              value={form.time_in}
-              onChange={(newVal) => setForm((f) => ({ ...f, time_in: newVal }))}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-            <TimePicker
-              label="Time Out"
-              value={form.time_out}
-              onChange={(newVal) =>
-                setForm((f) => ({ ...f, time_out: newVal }))
-              }
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </LocalizationProvider>
-        </DialogContent>
-        <Divider sx={{ ml: 3, mr: 3 }} />
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setEditOpen(false)} variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={handleEditSave} variant="contained">
-            Edit
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Suspense fallback={<CircularProgress sx={{ mt: 3 }} />}>
+        {editOpen && (
+          <EditAttendanceDialog
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            form={form}
+            setForm={setForm}
+            onSave={handleEditSave}
+          />
+        )}
+      </Suspense>
 
       {/* Export Dialog */}
-      <Dialog
+      <ExportDialog
         open={exportOpen}
         onClose={() => setExportOpen(false)}
-        sx={{ p: 3 }}
-      >
-        <DialogTitle>Export Attendance</DialogTitle>
-        <Divider sx={{ ml: 3, mr: 3 }} />
-        <DialogContent sx={{ p: 3 }}>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DatePicker
-              label="Start Date"
-              value={startDate}
-              onChange={setStartDate}
-              sx={{ mt: 2 }}
-            />
-            <DatePicker
-              label="End Date"
-              value={endDate}
-              onChange={setEndDate}
-              sx={{ mt: 2, ml: 5 }}
-            />
-          </LocalizationProvider>
-        </DialogContent>
-        <Divider sx={{ ml: 3, mr: 3 }} />
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setExportOpen(false)} variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={handleExport} variant="contained">
-            Export
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <Divider sx={{ ml: 3, mr: 3 }} />
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete this attendance record?
-          </Typography>
-        </DialogContent>
-        <Divider sx={{ ml: 3, mr: 3 }} />
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteOpen(false)} variant="outlined">
-            No
-          </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Yes
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onExport={async ({ startDate, endDate, status }) => {
+          try {
+            if (!startDate || !endDate) {
+              setToast({
+                open: true,
+                type: "error",
+                msg: "Please select start and end date",
+              });
+              return;
+            }
 
+            const query = new URLSearchParams({
+              employee_id: employee.id,
+              start: startDate,
+              end: endDate,
+              status,
+            });
+
+            const res = await fetch(
+              `${API_ENDPOINTS.exportAttendance(
+                startDate,
+                endDate
+              )}&employee_id=${employee.id}&status=${status}`
+            );
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.detail || "Export failed");
+            }
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "attendance.xlsx";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            setToast({
+              open: true,
+              type: "success",
+              msg: "Export successful",
+            });
+
+            setExportOpen(false);
+          } catch (err) {
+            setToast({
+              open: true,
+              type: "error",
+              msg: err instanceof Error ? err.message : "Export failed",
+            });
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Confirm Delete"
+        message=" Are you sure you want to delete this attendance record?"
+        confirmColor="error"
+        icon={<DGDeleteIcon color="error" fontSize="medium" />}
+        transition="slide"
+        loading={loading} // 🔹 pass loading state
+      />
       {/* Toast */}
       <Snackbar
         open={!!toast?.open}

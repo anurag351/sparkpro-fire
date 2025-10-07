@@ -22,6 +22,17 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Navigation from "../components/Navigation";
+import { API_ENDPOINTS } from "../config";
+import ExportDialog from "../components/ExportDialogProps";
+import ConfirmDialog from "../components/ConfirmDialogDynamic";
+import { GridDeleteForeverIcon } from "@mui/x-data-grid";
+
+interface EmployeeInfo {
+  id: string;
+  name: string;
+  role: string;
+  manager_id: string;
+}
 
 interface LeaveForm {
   start_date: Dayjs | null;
@@ -49,15 +60,16 @@ export default function LeaveModule() {
     type: "success" | "error";
     msg: string;
   } | null>(null);
-
+  const DGDeleteIcon = GridDeleteForeverIcon as unknown as React.ElementType;
   const [leaves, setLeaves] = useState<LeaveRecord[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
-
+  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
   // Dialog states
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
+  const [employee, setEmployee] = useState<EmployeeInfo>(userData);
+  const [loading, setLoading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportRange, setExportRange] = useState<{
     start: Dayjs | null;
@@ -66,23 +78,24 @@ export default function LeaveModule() {
 
   useEffect(() => {
     // TODO: Fetch leaves from API
-    setLeaves([
-      {
-        id: "1",
-        start_date: "2025-09-20",
-        end_date: "2025-09-22",
-        status: "Pending",
-        review_comment: "Need clarification",
-      },
-      {
-        id: "2",
-        start_date: "2025-09-25",
-        end_date: "2025-09-26",
-        status: "Approved",
-        review_comment: "Enjoy your leave",
-      },
-    ]);
+    setEmployee(userData);
+    fetchLeave();
   }, []);
+
+  const fetchLeave = async () => {
+    // TODO: replace with your real API
+    if (!employee) {
+      setLeaves([]);
+    } else {
+      const res = await fetch(API_ENDPOINTS.leaveRequests(employee?.id));
+      if (res.ok) {
+        const data = await res.json();
+        setLeaves(data);
+      } else {
+        setLeaves([]);
+      }
+    }
+  };
   const clearAll = () => {
     setForm({ start_date: null, end_date: null, reason: "" });
     setEditId(null);
@@ -101,17 +114,37 @@ export default function LeaveModule() {
     const payload = {
       start_date: form.start_date.format("YYYY-MM-DD"),
       end_date: form.end_date.format("YYYY-MM-DD"),
+      reason: form.reason,
+      employee_id: employee.id,
+      approver_l1: employee.manager_id,
     };
 
     try {
       if (editId) {
-        // Update leave API
-        console.log("Updating leave:", editId, payload);
+        const res = await fetch(API_ENDPOINTS.updateLeave(editId), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          const message =
+            errorData?.detail || errorData?.message || `Error ${res.status}`;
+          throw new Error(message);
+        }
       } else {
-        // Create leave API
-        console.log("Creating leave:", payload);
+        const res = await fetch(API_ENDPOINTS.applyLeave(userData.id), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          const message =
+            errorData?.detail || errorData?.message || `Error ${res.status}`;
+          throw new Error(message);
+        }
       }
-
       setToast({
         open: true,
         type: "success",
@@ -119,15 +152,18 @@ export default function LeaveModule() {
           ? "Leave updated successfully"
           : "Leave applied successfully",
       });
-      clearAll();
-      setEditOpen(false);
-      // Refresh leave list (TODO: fetch from API)
     } catch (err) {
       setToast({
         open: true,
         type: "error",
-        msg: "Failed to apply/update leave",
+        msg:
+          err instanceof Error ? err.message : "Failed to apply/update leave",
       });
+    } finally {
+      clearAll();
+      setEditOpen(false);
+      fetchLeave();
+      setEditId(null);
     }
   };
 
@@ -138,15 +174,25 @@ export default function LeaveModule() {
 
   const confirmDelete = async () => {
     if (!deleteId) return;
+    setLoading(true);
     try {
       // Call delete API
+      const res = await fetch(API_ENDPOINTS.deleteLeave(deleteId), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        const message =
+          errorData?.detail || errorData?.message || `Error ${res.status}`;
+        throw new Error(message);
+      }
       console.log("Deleting leave:", deleteId);
       setToast({
         open: true,
         type: "success",
         msg: "Leave deleted successfully",
       });
-      setLeaves((prev) => prev.filter((l) => l.id !== deleteId));
     } catch {
       setToast({
         open: true,
@@ -156,6 +202,8 @@ export default function LeaveModule() {
     } finally {
       setDeleteOpen(false);
       setDeleteId(null);
+      fetchLeave();
+      setLoading(false);
     }
   };
 
@@ -170,10 +218,11 @@ export default function LeaveModule() {
       flex: 1,
       renderCell: (params) => {
         const row = params.row as LeaveRecord;
-        if (row.status !== "Approved") {
+        if (row.status !== "Approved" && row.status !== "Pending") {
           return (
             <Box>
               <IconButton
+                color="primary"
                 onClick={() => {
                   setEditId(row.id);
                   setForm({
@@ -186,7 +235,10 @@ export default function LeaveModule() {
               >
                 <EditIcon />
               </IconButton>
-              <IconButton onClick={() => handleDeleteClick(row.id)}>
+              <IconButton
+                color="error"
+                onClick={() => handleDeleteClick(row.id)}
+              >
                 <DeleteIcon />
               </IconButton>
             </Box>
@@ -204,11 +256,9 @@ export default function LeaveModule() {
         elevation={8}
         sx={{
           zIndex: 1200,
-          m: 3,
+          m: 4,
           p: 3,
           borderRadius: 2,
-          width: "90%",
-          mx: "auto",
           mt: 5,
         }}
       >
@@ -218,6 +268,24 @@ export default function LeaveModule() {
           </Typography>
 
           {/* Leave Form */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
+              gap: 4, // space between columns
+              mt: 3,
+            }}
+          >
+            <Typography>
+              <strong>Name:</strong> {employee.name}
+            </Typography>
+            <Typography>
+              <strong>Role:</strong> {employee.role}
+            </Typography>
+            <Typography>
+              <strong>Manager:</strong> {employee.manager_id}
+            </Typography>
+          </Box>
           <Box sx={{ display: "flex", gap: 3, mt: 5 }}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
@@ -237,9 +305,6 @@ export default function LeaveModule() {
                 slotProps={{ textField: { fullWidth: true } }}
               />
             </LocalizationProvider>
-          </Box>
-          {/* Reason Field */}
-          <Box sx={{ mt: 3 }}>
             <TextField
               label="Reason"
               value={form.reason}
@@ -316,35 +381,84 @@ export default function LeaveModule() {
         </DialogActions>
       </Dialog>
 
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={async ({ startDate, endDate, status }) => {
+          try {
+            if (!startDate || !endDate) {
+              setToast({
+                open: true,
+                type: "error",
+                msg: "Please select start and end date",
+              });
+              return;
+            }
+
+            const query = new URLSearchParams({
+              employee_id: employee.id,
+              start: startDate,
+              end: endDate,
+              status,
+            });
+
+            const res = await fetch(
+              `${API_ENDPOINTS.exportLeave(startDate, endDate)}&employee_id=${
+                employee.id
+              }&status=${status}`
+            );
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.detail || "Export failed");
+            }
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "leave.xlsx";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            setToast({
+              open: true,
+              type: "success",
+              msg: "Export successful",
+            });
+
+            setExportOpen(false);
+          } catch (err) {
+            setToast({
+              open: true,
+              type: "error",
+              msg: err instanceof Error ? err.message : "Export failed",
+            });
+          }
+        }}
+      />
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <Divider />
-        <DialogContent sx={{ p: 3 }}>
-          <Typography>
-            Are you sure you want to delete this leave request?
-          </Typography>
-        </DialogContent>
-        <Divider />
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteOpen(false)} variant="outlined">
-            No
-          </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Yes
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="Confirm Delete"
+        message="Are you sure you want to delete this leave request?"
+        confirmColor="error"
+        icon={<DGDeleteIcon color="error" fontSize="medium" />}
+        transition="slide"
+        loading={loading} // 🔹 pass loading state
+      />
 
       <Card
         elevation={8}
         sx={{
           zIndex: 1200,
-          m: 3,
+          m: 4,
           p: 3,
           borderRadius: 2,
-          width: "90%",
-          mx: "auto",
           mt: 5,
         }}
       >
@@ -356,9 +470,18 @@ export default function LeaveModule() {
               columns={columns}
               getRowId={(row) => row.id}
               disableRowSelectionOnClick
+              pageSizeOptions={[5, 10, 20]}
               sx={{
-                borderLeft: "none",
-                borderRight: "none",
+                "& .MuiDataGrid-columnHeaders": {
+                  backgroundColor: "#f5f5f5", // header background
+                },
+                "& .MuiDataGrid-columnHeaderTitle": {
+                  fontWeight: "bold", // header title bold
+                  color: "#333",
+                },
+                "& .MuiDataGrid-cell": {
+                  fontSize: "14px",
+                },
               }}
             />
           </Box>

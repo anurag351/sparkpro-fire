@@ -13,38 +13,13 @@ import {
   Divider,
 } from "@mui/material";
 import AnuragPic from "../pics/mypic.jpg";
+import ResponsiveAppBar from "../components/NavigationHome";
 const Landing: React.FC = () => {
   return (
     <>
       {/* Navbar */}
-      <AppBar position="sticky" sx={{ bgcolor: "primary.main", boxShadow: 2 }}>
-        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-            SparkPro Fire Controls Pvt. Ltd.
-          </Typography>
-          <Box>
-            <Button color="inherit" sx={{ mx: 1 }}>
-              About Us
-            </Button>
-            <Button color="inherit" sx={{ mx: 1 }}>
-              Contact Us
-            </Button>
-            <Button color="inherit" sx={{ mx: 1 }}>
-              Join Us
-            </Button>
-            <Button
-              variant="outlined"
-              color="inherit"
-              href="/login"
-              sx={{ ml: 2 }}
-            >
-              Login
-            </Button>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ mt: 6, mb: 6 }}>
+      <ResponsiveAppBar />
+      <Container maxWidth="lg" sx={{ mt: 6, mb: 6, p: 3 }}>
         {/* Company Intro */}
         <Card elevation={6} sx={{ mb: 5, borderRadius: 3 }}>
           <CardContent sx={{ textAlign: "center", p: 5 }}>

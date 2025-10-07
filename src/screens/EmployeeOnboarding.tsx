@@ -1,5 +1,6 @@
 // EmployeeOnboard.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, forwardRef } from "react";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   Avatar,
   Box,
@@ -10,18 +11,23 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  Slide,
   FormControl,
   InputLabel,
   MenuItem,
+  Collapse,
   Select,
   SelectChangeEvent,
   Snackbar,
   TextField,
   Typography,
   Alert,
+  IconButton,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import Navigation from "../components/Navigation";
+import { API_ENDPOINTS } from "../config";
 
 type Role = "Employee" | "Manager" | "APD" | "PD" | "MD";
 
@@ -91,19 +97,36 @@ export default function EmployeeOnboard({
   const [employeeIDGenerated, setEmployeeIDGenerated] = useState(false);
   // Snackbar state
   const [toast, setToast] = useState<ToastState>(null);
-
   const [managers, setManagers] = useState<ManagerItem[]>([]);
+  const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+  const [employee, setEmployee] = useState<ManagerItem | null>(null);
+  const readOnly = employeeIDGenerated; // Controls read-only state
+  const [copyCheck, setCopyCheck] = useState(false);
+  const [checkUpload, setCheckUpload] = useState(false);
 
   useEffect(() => {
     // TODO: replace with real API call
-    setManagers([
-      { id: "MGR1", name: "Ramesh", role: "Manager" },
-      { id: "APD1", name: "Sita", role: "APD" },
-      { id: "PD1", name: "Amit", role: "PD" },
-      { id: "MD1", name: "Boss", role: "MD" },
-    ]);
+    fetchemployeeDetails();
+    currentUserRole = userData.role;
   }, []);
-
+  const fetchemployeeDetails = async () => {
+    // TODO: replace with your real API
+    const res = await fetch(API_ENDPOINTS.employeeDetailsByRole("all"));
+    if (res.ok) {
+      const data = await res.json();
+      const nonEmployeeNames = data
+        .filter((emp: any) => emp.role !== "Employee")
+        .map((emp: any) => ({
+          id: emp.id,
+          name: emp.name,
+          role: emp.role,
+        }));
+      setManagers(nonEmployeeNames);
+      setEmployeeIDGenerated(false);
+    } else {
+      setManagers([]);
+    }
+  };
   // Clean up preview URL when file changes or component unmounts
   useEffect(() => {
     return () => {
@@ -122,6 +145,24 @@ export default function EmployeeOnboard({
     value: FormState[K]
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleCopy = () => {
+    if (employee && checkUpload) {
+      navigator.clipboard.writeText(employee["id"]);
+      setCopyCheck(true);
+      alert("Password copied to clipboard");
+      setEmployeeIDGenerated(false);
+    }
+    if (employee) {
+      navigator.clipboard.writeText(employee["id"]);
+      setCopyCheck(true);
+      alert("Password copied to clipboard");
+      setToast({
+        open: true,
+        type: "success",
+        msg: "Password copied to clipboard",
+      });
+    }
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,10 +217,12 @@ export default function EmployeeOnboard({
 
   const managerRoleOptions = (): ManagerItem[] => {
     if (!form.role) return [];
+    if (form.role === "Employee")
+      return managers.filter((m) => ["Manager", "PD", "APD"].includes(m.role));
     if (form.role === "Manager")
       return managers.filter((m) => ["PD", "APD"].includes(m.role));
     if (form.role === "APD")
-      return managers.filter((m) => ["PD"].includes(m.role));
+      return managers.filter((m) => ["PD", "MD"].includes(m.role));
     if (form.role === "PD")
       return managers.filter((m) => ["MD"].includes(m.role));
     if (form.role === "MD") return [];
@@ -188,7 +231,7 @@ export default function EmployeeOnboard({
 
   const submit = () => {
     // client side validations
-    if (!form.id || !form.name || !form.role) {
+    if (!form.name || !form.role || !form.contact || !form.aadhaar_number) {
       setToast({
         open: true,
         type: "error",
@@ -219,32 +262,58 @@ export default function EmployeeOnboard({
     setShowConfirm(false);
     setLoading(true);
 
-    const data = new FormData();
+    const payload: Record<string, any> = {};
+
     (Object.keys(form) as (keyof FormState)[]).forEach((k) => {
       const v = form[k];
       if (v === null || v === "") return;
-      if (k === "file") {
-        if (form.file) data.append("file", form.file);
-        return;
-      }
-      data.append(k, String(v));
+      payload[k] = v;
     });
 
     try {
-      const res = await fetch("/employees/", { method: "POST", body: data });
-      if (!res.ok) throw new Error("Failed");
-
+      const res = await fetch(API_ENDPOINTS.addEmployee(userData.id), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        const message =
+          errorData?.detail || errorData?.message || `Error ${res.status}`;
+        throw new Error(message);
+      }
+      setEmployeeIDGenerated(true);
+      const data = await res.json();
+      setEmployee(data);
+      setForm((prev) => ({
+        ...prev,
+        id: data.id,
+        name: payload.name || "",
+        role: payload.role || "",
+        manager_id: payload.manager_id || "",
+        contact: payload.contact || "",
+        salary_per_month: payload.salary_per_month?.toString() || "",
+        overtime_charge_per_hour:
+          payload.overtime_charge_per_hour?.toString() || "",
+        deduct_per_hour: payload.deduct_per_hour?.toString() || "",
+        deduct_per_day: payload.deduct_per_day?.toString() || "",
+        aadhaar_number: payload.aadhaar_number || "",
+      }));
       setToast({
         open: true,
         type: "success",
         msg: "Employee Onboarded Successfully",
       });
-      clearAll();
     } catch (err) {
       setToast({
         open: true,
         type: "error",
-        msg: "Failed Onboarded Please Try Again",
+        msg:
+          err instanceof Error
+            ? err.message
+            : "Failed Onboarded Please Try Again",
       });
     } finally {
       setLoading(false);
@@ -261,6 +330,9 @@ export default function EmployeeOnboard({
       setField("add_manager_id", ""); // clear new manager selection too
     }
   };
+  const Transition = forwardRef(function Transition(props: any, ref) {
+    return <Slide direction="up" ref={ref} {...props} />;
+  });
 
   return (
     <>
@@ -268,233 +340,379 @@ export default function EmployeeOnboard({
       <Card
         elevation={8}
         sx={{
-          zIndex: 1300,
-          maxWidth: 1100,
-          margin: "20px auto",
+          maxWidth: 1200,
+          margin: { xs: 2, sm: 3, md: "20px auto" },
           borderRadius: 2,
-          bgcolor: "background.paper",
-          p: 2,
-          boxShadow: 6,
+          p: { xs: 2, md: 3 },
         }}
       >
         <CardContent>
           <Typography
             variant="h5"
-            component="h1"
-            sx={{ fontWeight: 600, ml: 2 }}
+            sx={{ fontWeight: 600, mb: { xs: 2, md: 3 } }}
           >
             Employee Onboarding
           </Typography>
-
-          <Box sx={{ display: "flex", gap: 5 }}>
-            {/* LEFT: File upload (30% width) */}
-            {employeeIDGenerated && (
+          {/* Main layout: form + upload */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              gap: 3,
+            }}
+          >
+            {/* Form Section */}
+            <Box sx={{ flex: 1 }}>
               <Box
                 sx={{
-                  flex: "0 0 30%",
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  // padding & margin of 3 as requested
-                  p: 3,
-                  m: 2,
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: 3,
                 }}
               >
-                <Box
-                  sx={{
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    border: "1px dashed",
-                    borderColor: "grey.300",
-                    py: 3,
-                    px: 2,
-                    borderRadius: 1,
-                  }}
-                >
-                  <Avatar
-                    src={preview ?? ""}
-                    alt="passport"
-                    sx={{
-                      width: 160,
-                      height: 170,
-                      mb: 2,
-                      bgcolor: preview ? "transparent" : "grey.100",
-                    }}
-                    variant="rounded"
-                  />
-                  <Button variant="outlined" component="label" sx={{ mt: 2 }}>
-                    Upload Photo
-                    <input
-                      hidden
-                      accept="image/*"
-                      type="file"
-                      onChange={handleFile}
-                    />
-                  </Button>
-
-                  <Typography
-                    variant="caption"
-                    sx={{ mt: 5, color: "text.secondary", textAlign: "center" }}
-                  >
-                    Passport size photo preview
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-
-            {/* RIGHT: Form fields (70% width) */}
-            <Box>
-              {/* Grid container with gutter spacing=2 between columns */}
-              <Grid container spacing={9} sx={{ ml: 2 }}>
                 {/* Column 1 */}
-                <Grid item xs={12} md={6} {...({} as any)}>
-                  <Box sx={{ display: "flex", flexDirection: "column" }}>
-                    <TextField
-                      label="Name *"
-                      value={form.name}
-                      onChange={(e) => setField("name", e.target.value)}
-                      fullWidth
-                      sx={{ mt: 5 }}
-                    />
-                    <TextField
-                      label="Contact"
-                      value={form.contact}
-                      onChange={onContactKey}
-                      fullWidth
-                      sx={{ mt: 5 }}
-                    />
+                <Box sx={{ flex: 1 }}>
+                  <TextField
+                    label="Name *"
+                    value={form.name}
+                    onChange={(e) => setField("name", e.target.value)}
+                    fullWidth
+                    sx={{ mt: 5 }}
+                    disabled={readOnly}
+                  />
+                  <TextField
+                    label="Contact"
+                    value={form.contact}
+                    onChange={onContactKey}
+                    fullWidth
+                    sx={{ mt: 5 }}
+                    disabled={readOnly}
+                  />
+                  <FormControl fullWidth sx={{ mt: 5 }}>
+                    <InputLabel id="role-label">Role *</InputLabel>
+                    <Select
+                      labelId="role-label"
+                      value={form.role}
+                      label="Role *"
+                      onChange={onRoleChange}
+                      disabled={readOnly}
+                    >
+                      <MenuItem value="">Select role</MenuItem>
+                      {availableRolesForCurrentUser.map((r) => (
+                        <MenuItem key={r} value={r}>
+                          {r}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Existing Manager select (visibility follows original requirement) */}
+                  {form.role && (
                     <FormControl fullWidth sx={{ mt: 5 }}>
-                      <InputLabel id="role-label">Role *</InputLabel>
+                      <InputLabel id="manager-label">Manager</InputLabel>
                       <Select
-                        labelId="role-label"
-                        value={form.role}
-                        label="Role *"
-                        onChange={onRoleChange}
+                        labelId="manager-label"
+                        label="Manager"
+                        value={form.manager_id}
+                        onChange={(e: SelectChangeEvent) =>
+                          setField("manager_id", e.target.value)
+                        }
+                        disabled={readOnly}
                       >
-                        <MenuItem value="">Select role</MenuItem>
-                        {availableRolesForCurrentUser.map((r) => (
-                          <MenuItem key={r} value={r}>
-                            {r}
+                        <MenuItem value="">Select manager</MenuItem>
+                        {managerRoleOptions().map((m) => (
+                          <MenuItem key={m.id} value={m.id}>
+                            {m.name} ({m.role})
                           </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
+                  )}
 
-                    {/* Existing Manager select (visibility follows original requirement) */}
-                    {form.role && (
-                      <FormControl fullWidth sx={{ mt: 5 }}>
-                        <InputLabel id="manager-label">Manager</InputLabel>
-                        <Select
-                          labelId="manager-label"
-                          label="Manager"
-                          value={form.manager_id}
-                          onChange={(e: SelectChangeEvent) =>
-                            setField("manager_id", e.target.value)
-                          }
-                        >
-                          <MenuItem value="">Select manager</MenuItem>
-                          {managerRoleOptions().map((m) => (
-                            <MenuItem key={m.id} value={m.id}>
-                              {m.name} ({m.role})
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-
-                    <TextField
-                      label="Monthly Salary"
-                      value={form.salary_per_month}
-                      onChange={(e) => onNumericKey("salary_per_month", e)}
-                      fullWidth
-                      sx={{ mt: 5 }}
-                    />
-                  </Box>
-                </Grid>
+                  <TextField
+                    label="Monthly Salary"
+                    value={form.salary_per_month}
+                    onChange={(e) => onNumericKey("salary_per_month", e)}
+                    fullWidth
+                    sx={{ mt: 5 }}
+                    disabled={readOnly}
+                  />
+                </Box>
 
                 {/* Column 2 */}
-                <Grid item xs={12} md={6} {...({} as any)}>
-                  <Box sx={{ display: "flex", flexDirection: "column" }}>
-                    <TextField
-                      label="Aadhaar Number"
-                      value={form.aadhaar_number}
-                      onChange={onAadhaarKey}
-                      fullWidth
-                      sx={{ mt: 5 }}
-                    />
+                <Box sx={{ flex: 1 }}>
+                  <TextField
+                    label="Aadhaar Number"
+                    value={form.aadhaar_number}
+                    onChange={onAadhaarKey}
+                    fullWidth
+                    sx={{ mt: 5 }}
+                    disabled={readOnly}
+                  />
 
-                    <TextField
-                      label="Overtime Per Hour"
-                      value={form.overtime_charge_per_hour}
-                      onChange={(e) =>
-                        onNumericKey("overtime_charge_per_hour", e)
-                      }
-                      fullWidth
-                      sx={{ mt: 5 }}
-                    />
+                  <TextField
+                    label="Overtime Per Hour"
+                    value={form.overtime_charge_per_hour}
+                    onChange={(e) =>
+                      onNumericKey("overtime_charge_per_hour", e)
+                    }
+                    fullWidth
+                    sx={{ mt: 5 }}
+                    disabled={readOnly}
+                  />
 
-                    <TextField
-                      label="Deduct Per Day"
-                      value={form.deduct_per_day}
-                      onChange={(e) => onNumericKey("deduct_per_day", e)}
-                      fullWidth
-                      sx={{ mt: 5 }}
-                    />
-                    <TextField
-                      label="Deduct Per Hour"
-                      value={form.deduct_per_hour}
-                      onChange={(e) => onNumericKey("deduct_per_hour", e)}
-                      fullWidth
-                      sx={{ mt: 5 }}
-                    />
-                  </Box>
-                </Grid>
-              </Grid>
+                  <TextField
+                    label="Deduct Per Day"
+                    value={form.deduct_per_day}
+                    onChange={(e) => onNumericKey("deduct_per_day", e)}
+                    fullWidth
+                    sx={{ mt: 5 }}
+                    disabled={readOnly}
+                  />
+                  <TextField
+                    label="Deduct Per Hour"
+                    value={form.deduct_per_hour}
+                    onChange={(e) => onNumericKey("deduct_per_hour", e)}
+                    fullWidth
+                    sx={{ mt: 5 }}
+                    disabled={readOnly}
+                  />
+                  {readOnly && (
+                    <Box sx={{ mt: 6 }}>
+                      <Typography variant="h6" sx={{ wordBreak: "break-all" }}>
+                        {employee?.id}
+                        <IconButton onClick={handleCopy} color="primary">
+                          <ContentCopyIcon />
+                        </IconButton>
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
 
-              {/* Buttons (row-reverse) */}
+                {/* Buttons (row-reverse) */}
+              </Box>
               <Box
                 sx={{
                   display: "flex",
-                  gap: 2,
+                  flexDirection: "row",
                   justifyContent: "flex-end",
-                  mt: 5,
-                  mr: 16,
+                  gap: 2,
+                  mt: 3,
+                  p: 3,
                 }}
               >
-                <Button
-                  onClick={clearAll}
-                  variant="outlined"
-                  sx={{ borderRadius: 3, px: 3 }}
-                >
-                  Clear All
-                </Button>
-                <Button
-                  onClick={submit}
-                  variant="contained"
-                  color="primary"
-                  sx={{ borderRadius: 3, px: 3 }}
-                  disabled={loading}
-                >
-                  Onboard
-                </Button>
+                {!readOnly && (
+                  <Button
+                    onClick={clearAll}
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 3,
+                      px: 3,
+                      height: "50px",
+                    }}
+                  >
+                    Clear All
+                  </Button>
+                )}
+                {!readOnly && (
+                  <Button
+                    onClick={submit}
+                    variant="contained"
+                    color="primary"
+                    sx={{
+                      borderRadius: 3,
+                      px: 3,
+                      height: "50px",
+                    }}
+                    disabled={loading}
+                  >
+                    Onboard
+                  </Button>
+                )}
               </Box>
+              {/* LEFT: File upload (30% width) */}
+              {employeeIDGenerated && (
+                <Box
+                  sx={{
+                    flex: { xs: 1, md: "0 0 30%" },
+                    mt: { xs: 3, md: 3 },
+                    width: { xs: "100%", md: "30%" },
+                    justifyContent: "center",
+                    alignItems: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Collapse in={employeeIDGenerated}>
+                    <Box
+                      sx={{
+                        border: "1px dashed grey",
+                        borderRadius: 2,
+                        p: 3,
+                        textAlign: "center",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
+                      <Avatar
+                        src={
+                          preview ??
+                          (form.passport_photo_filename
+                            ? `${API_ENDPOINTS.updateEmployeePhoto(form.id)}/${
+                                form.passport_photo_filename
+                              }`
+                            : "")
+                        }
+                        alt="passport"
+                        sx={{
+                          width: 199,
+                          height: 246,
+                          mb: 2,
+                          bgcolor: preview ? "transparent" : "grey.100",
+                        }}
+                        variant="rounded"
+                      />
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          mt: 2,
+                          color: "text.secondary",
+                          textAlign: "center",
+                        }}
+                      >
+                        Passport size photo preview
+                      </Typography>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        sx={{ mt: 2 }}
+                      >
+                        Choose File
+                        <input
+                          hidden
+                          accept="image/*"
+                          type="file"
+                          onChange={handleFile}
+                        />
+                      </Button>
+
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{ mt: 3, borderRadius: 2 }}
+                        disabled={!form.file}
+                        onClick={async () => {
+                          if (!form.file) {
+                            setToast({
+                              open: true,
+                              type: "error",
+                              msg: "Please select a file before uploading",
+                            });
+                            return;
+                          }
+                          try {
+                            const uploadData = new FormData();
+                            uploadData.append("file", form.file);
+
+                            const uploadRes = await fetch(
+                              API_ENDPOINTS.updateEmployeePhoto(form.id),
+                              {
+                                method: "POST",
+                                body: uploadData,
+                              }
+                            );
+                            if (!uploadRes.ok)
+                              throw new Error("File upload failed");
+                            const uploadJson = await uploadRes.json();
+
+                            setForm((prev) => ({
+                              ...prev,
+                              passport_photo_filename: uploadJson.filename,
+                            }));
+                            setCheckUpload(true);
+                            setToast({
+                              open: true,
+                              type: "success",
+                              msg: "Photo uploaded successfully!",
+                            });
+                            if (copyCheck) {
+                              setEmployeeIDGenerated(false);
+                            } else {
+                              alert(
+                                "Please Copy and Save EmployeeID Before Leaving Page"
+                              );
+                            }
+                          } catch (err) {
+                            setToast({
+                              open: true,
+                              type: "error",
+                              msg:
+                                err instanceof Error
+                                  ? err.message
+                                  : "Upload failed. Please try again.",
+                            });
+                          } finally {
+                            clearAll();
+                          }
+                        }}
+                      >
+                        Upload
+                      </Button>
+                    </Box>
+                  </Collapse>
+                  {/* 🔽 Upload Button */}
+                </Box>
+              )}
             </Box>
           </Box>
         </CardContent>
 
         {/* Confirm Dialog */}
-        <Dialog open={showConfirm} onClose={() => setShowConfirm(false)}>
-          <DialogTitle>Please Confirm</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Please Confirm If All Detail are Correct Then Proceed
+        <Dialog
+          open={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          TransitionComponent={Transition}
+          keepMounted
+          maxWidth="xs"
+          fullWidth
+        >
+          {/* Header */}
+          <DialogTitle sx={{ fontWeight: 600, pb: 1, textAlign: "center" }}>
+            Please Confirm
+          </DialogTitle>
+          <Divider sx={{ mx: 2 }} />
+
+          {/* Body */}
+          <DialogContent sx={{ py: 3 }}>
+            <Typography align="center" sx={{ fontSize: "0.95rem" }}>
+              Please confirm if all details are correct before proceeding.
             </Typography>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowConfirm(false)}>Cancel</Button>
-            <Button onClick={confirmSubmit} variant="contained">
+          <Divider sx={{ mx: 2 }} />
+
+          {/* Footer */}
+          <DialogActions
+            sx={{
+              justifyContent: "center",
+              gap: 2,
+              py: 2,
+            }}
+          >
+            <Button
+              onClick={() => setShowConfirm(false)}
+              variant="outlined"
+              sx={{ px: 3, borderRadius: 2 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmSubmit}
+              variant="contained"
+              color="primary"
+              sx={{ px: 4, borderRadius: 2 }}
+            >
               OK
             </Button>
           </DialogActions>

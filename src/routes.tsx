@@ -10,6 +10,9 @@ import ResetPassword from "./screens/ResetPassword";
 import EmployeeOnboard from "./screens/EmployeeOnboarding";
 import AttendanceUpdate from "./screens/AttendanceUpdate";
 import LeaveModule from "./screens/LeaveModule";
+import AttendanceForOther from "./screens/AttendanceForOther";
+import LeaveModuleForOther from "./screens/LeaveModuleForOther";
+import CreatePassword from "./screens/CreateTempPassword";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -25,6 +28,10 @@ const AppRoutes: React.FC = () => {
         <Route path="/employeeOnboard" element={<EmployeeOnboard />} />
         <Route path="/attendance" element={<AttendanceUpdate />} />
         <Route path="/leaveRequest" element={<LeaveModule />} />
+        <Route path="/attendanceupdate" element={<AttendanceForOther />} />
+        <Route path="/leaveupdate" element={<LeaveModuleForOther />} />
+        <Route path="/onboardingemployee" element={<EmployeeOnboard />} />
+        <Route path="/createpassword" element={<CreatePassword />} />
       </Routes>
     </Router>
   );

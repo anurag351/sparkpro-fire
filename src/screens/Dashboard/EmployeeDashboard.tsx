@@ -3,54 +3,53 @@ import {
   Card,
   CardContent,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
   Box,
   CircularProgress,
   Backdrop,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Avatar,
+  Grid,
 } from "@mui/material";
-import Grid from "@mui/material/Grid";
 import Navigation from "../../components/Navigation";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config";
 
 interface AttendanceLog {
-  timeIn: string;
-  timeOut: string;
+  time_in: string;
+  time_out: string;
   date: string;
   status: "Approved" | "Pending" | "Rejected";
 }
 
 interface LeaveLog {
-  leaveDate: string;
+  start_date: string;
+  end_date: string;
   status: "Approved" | "Pending" | "Rejected";
 }
 
 const EmployeeDashboard: React.FC = () => {
   const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-  const employeeId = userData?.employeeId || "EMP001";
-
+  const employeeId = userData?.id || "EMP001";
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>([]);
   const [leaveLogs, setLeaveLogs] = useState<LeaveLog[]>([]);
-  const [loading, setLoading] = useState(true); // initial page load
-  const [overlayLoading, setOverlayLoading] = useState(false); // API calls
+  const [loading, setLoading] = useState(true);
+  const [overlayLoading, setOverlayLoading] = useState(false);
 
-  // Fetch Attendance + Leave from backend
   useEffect(() => {
     const fetchData = async () => {
       try {
         setOverlayLoading(true);
 
-        // Attendance API
-        const attendanceRes = await axios.get(
-          `${API_ENDPOINTS.attendance(employeeId)}?month=2025-09`
-        );
-
-        // Leave API
-        const leaveRes = await axios.get(
-          API_ENDPOINTS.leaveRequests(employeeId)
-        );
+        const [attendanceRes, leaveRes] = await Promise.all([
+          axios.get(API_ENDPOINTS.viewAttendanceByID(userData.id)),
+          axios.get(API_ENDPOINTS.leaveRequests(userData.id)),
+        ]);
 
         setAttendanceLogs(attendanceRes.data || []);
         setLeaveLogs(leaveRes.data || []);
@@ -65,21 +64,7 @@ const EmployeeDashboard: React.FC = () => {
     fetchData();
   }, [employeeId]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Approved":
-        return "#a5d6a7"; // green
-      case "Pending":
-        return "#fff59d"; // yellow
-      case "Rejected":
-        return "#ef9a9a"; // red
-      default:
-        return "#e0e0e0";
-    }
-  };
-
   if (loading) {
-    // Page-level loader for first render
     return (
       <Box
         display="flex"
@@ -92,106 +77,203 @@ const EmployeeDashboard: React.FC = () => {
     );
   }
 
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "approved":
+        return "#a5d6a7";
+      case "pending":
+        return "#fff59d";
+      case "rejected":
+        return "#ef9a9a";
+      default:
+        return "#e0e0e0";
+    }
+  };
+
+  // Filter pending only
+  const pendingAttendance = attendanceLogs.filter(
+    (a) => a.status?.toLowerCase() === "pending"
+  );
+  const pendingLeaves = leaveLogs.filter(
+    (l) => l.status?.toLowerCase() === "pending"
+  );
+
   return (
     <>
       <Navigation />
-      <Box p={2}>
-        <Typography variant="h5" gutterBottom>
-          {employeeId} Dashboard
-        </Typography>
-
-        <Grid container spacing={2} sx={{ bgcolor: "background.paper" }}>
-          {/* Left Info Card */}
-          <Grid item width={"25%"} xs={12} md={4} {...({} as any)}>
-            <Card sx={{ boxShadow: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Employee Information
+      <Box p={3} sx={{ maxWidth: "1200px", margin: "auto" }}>
+        {/* --- EMPLOYEE INFO CARD --- */}
+        <Card sx={{ boxShadow: 3, mb: 3, p: 3 }}>
+          <Box>
+            {/* Employee Photo */}
+            <Grid item xs={12} md={3} textAlign="center" {...({} as any)}>
+              <Avatar
+                alt={userData?.name || "Employee"}
+                src={
+                  userData?.passport_photo_filename
+                    ? `${API_ENDPOINTS.showPhoto(
+                        userData?.passport_photo_filename
+                      )}`
+                    : "/placeholder.png"
+                }
+                sx={{ width: 170, height: 180, margin: "auto", border: 2 }}
+              />
+              <Box item xs={12} md={4} sx={{ mt: 3 }} {...({} as any)}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom>
+                  {userData?.name || "John Doe"}
                 </Typography>
-                <List sx={{ textAlign: "center" }}>
-                  <ListItem>
-                    <ListItemText
-                      primary="Name"
-                      secondary={userData?.name || "John Doe"}
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText primary="Total Days" secondary="220" />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText primary="Overtime Hours" secondary="45" />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText primary="Total Leaves" secondary="12" />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText
-                      primary="Current Project"
-                      secondary="SparkPro Fire App"
-                    />
-                  </ListItem>
-                  <ListItem>
-                    <ListItemText primary="Manager" secondary="EMP002" />
-                  </ListItem>
-                </List>
-              </CardContent>
-            </Card>
-          </Grid>
+              </Box>
+            </Grid>
 
-          {/* Attendance Logs */}
-          <Grid item width={"50%"} xs={12} md={6} {...({} as any)}>
-            {attendanceLogs.map((log, index) => (
-              <Card
-                key={index}
-                sx={{
-                  mb: 2,
-                  backgroundColor: getStatusColor(log.status),
-                  boxShadow: 2,
-                }}
-              >
-                <CardContent>
-                  <Typography variant="body1">Date: {log.date}</Typography>
-                  <Typography variant="body2">Time In: {log.timeIn}</Typography>
-                  <Typography variant="body2">
-                    Time Out: {log.timeOut}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ textAlign: "right", fontWeight: "bold" }}
-                  >
-                    {log.status}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ))}
-          </Grid>
+            {/* Employee Details */}
 
-          {/* Leave Logs */}
-          <Grid item width={"25%"} xs={12} md={2} {...({} as any)}>
-            {leaveLogs.map((leave, index) => (
-              <Card
-                key={index}
-                sx={{
-                  mb: 2,
-                  backgroundColor: getStatusColor(leave.status),
-                  boxShadow: 2,
-                }}
-              >
-                <CardContent>
-                  <Typography variant="body1">
-                    Leave Date: {leave.leaveDate}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ textAlign: "right", fontWeight: "bold" }}
-                  >
-                    {leave.status}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ))}
-          </Grid>
-        </Grid>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
+                gap: 4, // space between columns
+                mt: 3,
+              }}
+            >
+              <Typography variant="subtitle1" color="text.secondary">
+                <strong>Employee ID:</strong> {employeeId}
+              </Typography>
+
+              <Typography variant="subtitle1" color="text.secondary">
+                <strong>Role:</strong> {userData?.role || "Employee"}
+              </Typography>
+
+              <Typography variant="subtitle1" color="text.secondary">
+                <strong>Contact:</strong> {userData?.contact || "N/A"}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
+                gap: 4, // space between columns
+                mt: 3,
+              }}
+            >
+              <Typography variant="subtitle1" color="text.secondary">
+                <strong>Manager:</strong> {userData?.manager_id || "EMP002"}
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                <strong>Project:</strong>{" "}
+                {userData?.project_id || "SparkPro Fire App"}
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                <strong>Status:</strong>{" "}
+                {userData?.is_active ? "Active" : "Inactive"}
+              </Typography>
+            </Box>
+          </Box>
+        </Card>
+
+        {/* --- PENDING ATTENDANCE TABLE --- */}
+        <Card sx={{ boxShadow: 3, mb: 3, p: 3 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Pending Attendance
+          </Typography>
+          {pendingAttendance.length > 0 ? (
+            <TableContainer component={Paper} sx={{ mb: 3 }}>
+              <Table>
+                <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Time In</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Time Out</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pendingAttendance.map((log, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{log.date}</TableCell>
+                      <TableCell>{log.time_in}</TableCell>
+                      <TableCell>{log.time_out}</TableCell>
+                      <TableCell>
+                        <Box
+                          sx={{
+                            backgroundColor: getStatusColor(log.status),
+                            borderRadius: "8px",
+                            textAlign: "center",
+                            p: 0.5,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {log.status}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography color="text.secondary" mb={3}>
+              No pending attendance requests.
+            </Typography>
+          )}
+        </Card>
+
+        {/* --- PENDING LEAVE REQUESTS TABLE --- */}
+        <Card sx={{ boxShadow: 3, mb: 3, p: 3 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Pending Leave Requests
+          </Typography>
+          {pendingLeaves.length > 0 ? (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      Start Date
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>End Date</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      No of Days
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pendingLeaves.map((leave, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{leave.start_date}</TableCell>
+                      <TableCell>{leave.end_date}</TableCell>
+                      <TableCell>
+                        {Math.ceil(
+                          (new Date(leave.end_date).getTime() -
+                            new Date(leave.start_date).getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )}{" "}
+                        days
+                      </TableCell>
+                      <TableCell>
+                        <Box
+                          sx={{
+                            backgroundColor: getStatusColor(leave.status),
+                            borderRadius: "8px",
+                            textAlign: "center",
+                            p: 0.5,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {leave.status}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography color="text.secondary">
+              No pending leave requests.
+            </Typography>
+          )}
+        </Card>
       </Box>
 
       {/* Overlay Loader */}
