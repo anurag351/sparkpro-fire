@@ -49,6 +49,17 @@ async def get_pds(db: AsyncSession = Depends(get_session)):
 @router.get("/md", response_model=list[EmployeeOut])
 async def get_mds(db: AsyncSession = Depends(get_session)):
     return await get_employees_by_role_service(db, RoleEnum.MD)
+
+@router.get("/employeeID/{employee_id}/by/{role}", response_model=EmployeeResponse)
+async def get_employee_by_id_and_role(employee_id: str,role: str,db: AsyncSession = Depends(get_session)):
+    try:
+        employee = await get_employee_by_id_and_roleService(db, employee_id, role)
+        return employee
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # Update employee
 @router.put("/update/{employee_id}", response_model=EmployeeOut)
 async def update_employee(employee_id: str, payload: EmployeeCreate, db: AsyncSession = Depends(get_session)):

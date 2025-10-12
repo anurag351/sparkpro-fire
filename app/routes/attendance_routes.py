@@ -90,7 +90,7 @@ async def approve_attendance(attendance_id: int, db: AsyncSession = Depends(get_
     """
     Approve an attendance record
     """
-    return await attendance_service.update_attendance_status(db, attendance_id, "Approved", user)
+    return await attendance_service.update_attendance_status(db, attendance_id,"", "Approved", user)
 
 
 @router.post("/{attendance_id}/reject/{user}", response_model=AttendanceResponse)

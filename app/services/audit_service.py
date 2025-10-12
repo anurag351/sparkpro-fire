@@ -11,7 +11,7 @@ async def log_audit(
     action: str,
     performed_by: str,
     comment: str = None,
-):
+):  
     log = AuditLog(
         entity_type=entity_type,
         entity_id=entity_id,

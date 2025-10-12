@@ -1,7 +1,7 @@
 # app/services/employee_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException, UploadFile,status
 from typing import Optional
 from app.models.employee import Employee, RoleEnum
 from app.services.audit_service import log_audit as write_audit
@@ -117,7 +117,6 @@ async def get_employees_by_role_service(db: AsyncSession, role: str):
     res = await db.execute(select(Employee).where(Employee.role == role_enum))
     return res.scalars().all()
 
-
 # ---------------- UPDATE ----------------
 async def update_employee_service(db: AsyncSession, employee_id: str, payload: EmployeeCreate, performed_by: str = "SYSTEM"):
     res = await db.execute(select(Employee).where(Employee.id == employee_id))
@@ -229,3 +228,14 @@ async def save_employee_photo(db: AsyncSession, employee_id: str, file: UploadFi
     await db.refresh(emp)
 
     return {"msg": "Photo uploaded successfully", "photo_url": f"/static/passports/{filename}"}
+
+async def get_employee_by_id_and_roleService(db: AsyncSession, employee_id: str, role: str):
+    query = select(Employee).where(Employee.id == employee_id,Employee.role == role)
+    result = await db.execute(query)
+    employee = result.scalar_one_or_none()
+    if not employee:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No employee found with ID '{employee_id}' and role '{role}'."
+        )
+    return employee
