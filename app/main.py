@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.core.database import init_db
-from app.routes import register_routes
+from app.routes import register_routes, salary_slip_routes
 from app.routes import *
 from fastapi.responses import FileResponse
 from pathlib import Path
@@ -32,6 +32,7 @@ app.add_middleware(
 )
 app.include_router(employee_routes.router)
 app.include_router(user_routes.router)
+app.include_router(salary_slip_routes.router)
 register_routes(app)
 UPLOAD_DIR = "uploads/passports"
 

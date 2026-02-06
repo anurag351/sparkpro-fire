@@ -20,7 +20,9 @@ class RoleEnum(str, enum.Enum):
     APD = "APD"
     PD = "PD"
     MD = "MD"
-
+    HR = "HR"
+    CP = "CP"
+    CAP = "CAP"
 
 # ---------- EMPLOYEE MODEL ----------
 class Employee(Base):
@@ -30,7 +32,7 @@ class Employee(Base):
     serial_no = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
     # Unique employee ID (e.g., generated like "EM000123")
-    id = Column(String, unique=True, index=True, nullable=True)
+    id = Column(String, unique=True, nullable=False)
 
     name = Column(String, nullable=False)
     role = Column(Enum(RoleEnum), nullable=False)

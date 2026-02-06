@@ -62,7 +62,7 @@ async def create_leave_service(db: AsyncSession, payload: LeaveCreate, performed
         approver_l1=payload.approver_l1,
         approver_l2=payload.approver_l2
     )
-    performByDetail = f"{performer.name} ({performer.id})"
+    performByDetail = performer.id
 
     # Auto approve if performed_by role is PD or MD
     if performer.role in ["PD", "MD"]:
@@ -265,7 +265,7 @@ async def update_leave_status_service(
     await db.refresh(leave)
 
     # 🔹 Write to audit log
-    performByDetail = f"{performer.name} ({performer.id})"
+    performByDetail = performer.id
     await write_audit(
         db,
         entity_type="Leave",

@@ -64,7 +64,7 @@ async def add_attendance(db: AsyncSession, attendance_data: AttendanceCreate, cr
 
     # Step 4: Determine approval status based on role
     status = "Approved" if creator.role in ["MD", "PD"] else "Pending"
-    perform_by_detail = f"{creator.name} ({creator.id})"
+    perform_by_detail = creator.id
 
     # Step 5: Create new attendance record
     new_attendance = Attendance(
@@ -163,7 +163,7 @@ async def update_attendance(db: AsyncSession, created_by: str, date_value: date,
     if created_by != new_data.employee_id:
         creator_result = await db.execute(select(Employee).where(Employee.id == created_by))
         creator = creator_result.scalar_one_or_none()
-        perform_by_detail = creator.name + "("+creator.id+")"
+        perform_by_detail = creator.id
         if not creator:
             raise HTTPException(status_code=404, detail=f"Creator employee {created_by} not found")
     else:

@@ -5,7 +5,7 @@ from fastapi import HTTPException, UploadFile,status
 from typing import Optional
 from app.models.employee import Employee, RoleEnum
 from app.services.audit_service import log_audit as write_audit
-from app.schemas.employee_schema import EmployeeCreate
+from app.schemas.employee_schema import EmployeeCreate, FetchEmployee
 import os, shutil
 from PIL import Image
 
@@ -21,6 +21,9 @@ ALLOWED_MANAGER_ROLES = {
     "Employee": ["Manager", "APD", "PD", "MD"],
     "Manager": ["APD", "PD", "MD"],
     "APD": ["PD", "MD"],
+    "CA": ["PD", "MD"],
+    "CAP":["PD", "MD"],
+    "HR":["PD", "MD"],
     "PD": ["MD"],
     "MD": []
 }
@@ -59,6 +62,7 @@ async def create_employee_service(db: AsyncSession, payload: EmployeeCreate, per
 
     # Insert a temporary employee to get serial_no
     temp = Employee(
+        id = payload.name,
         name=payload.name,
         role=RoleEnum[payload.role] if isinstance(payload.role, str) else payload.role,
         manager_id=payload.manager_id,
@@ -105,17 +109,44 @@ async def get_all_employees_service(db: AsyncSession):
     return res.scalars().all()
 
 
-async def get_employees_by_role_service(db: AsyncSession, role: str):
+async def get_employees_by_role_service(db: AsyncSession, fetch_employee: FetchEmployee = None):
     try:
-        role_enum = RoleEnum[role] if role in RoleEnum.__members__ else RoleEnum[role.upper()]
+        role_enum = RoleEnum[fetch_employee.role] if fetch_employee.role in RoleEnum.__members__ else RoleEnum[fetch_employee.role.upper()]
     except Exception:
-        match = next((r for r in RoleEnum if r.name.lower() == role.lower()), None)
+        match = next((r for r in RoleEnum if r.name.lower() == fetch_employee.role.lower()), None)
         if not match:
-            raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
+            raise HTTPException(status_code=400, detail=f"Invalid role: {fetch_employee.role}")
         role_enum = match
 
-    res = await db.execute(select(Employee).where(Employee.role == role_enum))
-    return res.scalars().all()
+    query = select(Employee).where(Employee.role == role_enum)
+    
+    # Apply FetchEmployee filters
+    if fetch_employee:
+        if fetch_employee.is_active is not None:
+            query = query.where(Employee.is_active == fetch_employee.is_active)
+        if fetch_employee.id:
+            query = query.where(Employee.id == fetch_employee.id)
+        if fetch_employee.manager_id:
+            query = query.where(Employee.manager_id == fetch_employee.manager_id)
+        if fetch_employee.name:
+            query = query.where(Employee.name.ilike(f"%{fetch_employee.name}%"))
+        if fetch_employee.contact:
+            query = query.where(Employee.contact.ilike(f"%{fetch_employee.contact}%"))
+        if fetch_employee.aadhaar_number:
+            query = query.where(Employee.aadhaar_number == fetch_employee.aadhaar_number)
+        if fetch_employee.name:
+            query = query.where(Employee.name.ilike(f"%{fetch_employee.name}%"))
+
+    res = await db.execute(query)
+    employees = res.scalars().all()
+    
+    # If role is MD or PD, return all columns; otherwise, set salary fields to None
+    if role_enum.name not in ("MD", "PD"):
+        for emp in employees:
+            emp.salary_per_month = None
+            emp.overtime_charge_per_hour = None
+    
+    return employees
 
 # ---------------- UPDATE ----------------
 async def update_employee_service(db: AsyncSession, employee_id: str, payload: EmployeeCreate, performed_by: str = "SYSTEM"):

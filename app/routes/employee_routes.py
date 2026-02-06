@@ -24,31 +24,10 @@ async def get_employee(employee_id: str, db: AsyncSession = Depends(get_session)
 async def get_all_employees(db: AsyncSession = Depends(get_session)):
     return await get_all_employees_service(db)
 
-# Get all managers
-@router.get("/managers", response_model=list[EmployeeOut])
-async def get_managers(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.Manager)
-
-# Get all Employee
-@router.get("/employee", response_model=list[EmployeeOut])
-async def get_managers(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.Employee)
-
-# Get all APDs
-
-@router.get("/apd", response_model=list[EmployeeOut])
-async def get_apds(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.APD)
-
-# Get all PDs
-@router.get("/pd", response_model=list[EmployeeOut])
-async def get_pds(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.PD)
-
-# Get all MDs
-@router.get("/md", response_model=list[EmployeeOut])
-async def get_mds(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.MD)
+# Fetch employees by filters
+@router.post("/advancedSearch", response_model=list[EmployeeResponse])
+async def advancedSearch(fetch_employee: FetchEmployee = None, db: AsyncSession = Depends(get_session)):
+    return await get_employees_by_role_service(db, fetch_employee)
 
 @router.get("/employeeID/{employee_id}/by/{role}", response_model=EmployeeResponse)
 async def get_employee_by_id_and_role(employee_id: str,role: str,db: AsyncSession = Depends(get_session)):
