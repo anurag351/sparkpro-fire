@@ -21,10 +21,10 @@ import dayjs, { Dayjs } from "dayjs";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import Navigation from "../components/Navigation";
-import { API_ENDPOINTS } from "../config";
-import ExportDialog from "../components/ExportDialogProps";
-import ConfirmDialog from "../components/ConfirmDialogDynamic";
+import Navigation from "../../components/Navigation";
+import { API_ENDPOINTS } from "../../config";
+import ExportDialog from "../../components/ExportDialogProps";
+import ConfirmDialog from "../../components/ConfirmDialogDynamic";
 import { GridDeleteForeverIcon } from "@mui/x-data-grid";
 
 interface EmployeeInfo {
@@ -64,38 +64,25 @@ export default function LeaveModule() {
   const [leaves, setLeaves] = useState<LeaveRecord[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-  // Dialog states
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [employee, setEmployee] = useState<EmployeeInfo>(userData);
   const [loading, setLoading] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [exportRange, setExportRange] = useState<{
-    start: Dayjs | null;
-    end: Dayjs | null;
-  }>({ start: null, end: null });
 
   useEffect(() => {
-    // TODO: Fetch leaves from API
     setEmployee(userData);
     fetchLeave();
   }, []);
 
   const fetchLeave = async () => {
-    // TODO: replace with your real API
-    if (!employee) {
-      setLeaves([]);
-    } else {
-      const res = await fetch(API_ENDPOINTS.leaveRequests(employee?.id));
-      if (res.ok) {
-        const data = await res.json();
-        setLeaves(data);
-      } else {
-        setLeaves([]);
-      }
-    }
+    if (!employee) return setLeaves([]);
+    const res = await fetch(API_ENDPOINTS.leaveRequests(employee?.id));
+    const data = res.ok ? await res.json() : [];
+    setLeaves(data);
   };
+
   const clearAll = () => {
     setForm({ start_date: null, end_date: null, reason: "" });
     setEditId(null);
@@ -120,31 +107,25 @@ export default function LeaveModule() {
     };
 
     try {
-      if (editId) {
-        const res = await fetch(API_ENDPOINTS.updateLeave(editId), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => null);
-          const message =
-            errorData?.detail || errorData?.message || `Error ${res.status}`;
-          throw new Error(message);
-        }
-      } else {
-        const res = await fetch(API_ENDPOINTS.applyLeave(userData.id), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => null);
-          const message =
-            errorData?.detail || errorData?.message || `Error ${res.status}`;
-          throw new Error(message);
-        }
+      const url = editId
+        ? API_ENDPOINTS.updateLeave(editId)
+        : API_ENDPOINTS.applyLeave(userData.id);
+
+      const method = editId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || errorData?.message || `Error ${res.status}`
+        );
       }
+
       setToast({
         open: true,
         type: "success",
@@ -163,7 +144,6 @@ export default function LeaveModule() {
       clearAll();
       setEditOpen(false);
       fetchLeave();
-      setEditId(null);
     }
   };
 
@@ -176,18 +156,12 @@ export default function LeaveModule() {
     if (!deleteId) return;
     setLoading(true);
     try {
-      // Call delete API
       const res = await fetch(API_ENDPOINTS.deleteLeave(deleteId), {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        const message =
-          errorData?.detail || errorData?.message || `Error ${res.status}`;
-        throw new Error(message);
-      }
-      console.log("Deleting leave:", deleteId);
+      if (!res.ok) throw new Error();
+
       setToast({
         open: true,
         type: "success",
@@ -252,41 +226,55 @@ export default function LeaveModule() {
   return (
     <>
       <Navigation />
+
+      {/* ======================== MAIN CARD ======================== */}
       <Card
         elevation={8}
-        sx={{
-          zIndex: 1200,
-          m: 4,
-          p: 3,
-          borderRadius: 2,
-          mt: 5,
-        }}
+        sx={{ zIndex: 1200, m: 4, p: 3, borderRadius: 2, mt: 5 }}
       >
         <CardContent>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Apply for Leave
           </Typography>
 
-          {/* Leave Form */}
+          {/* ======================== EMPLOYEE INFO ======================== */}
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
-              gap: 4, // space between columns
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: { xs: 1.5, sm: 4 },
               mt: 3,
+              width: "100%",
             }}
           >
-            <Typography>
-              <strong>Name:</strong> {employee.name}
-            </Typography>
-            <Typography>
-              <strong>Role:</strong> {employee.role}
-            </Typography>
-            <Typography>
-              <strong>Manager:</strong> {employee.manager_id}
-            </Typography>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "1rem" }}>
+                <strong>Name:</strong> {employee.name}
+              </Typography>
+            </Box>
+
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "1rem" }}>
+                <strong>Role:</strong> {employee.role}
+              </Typography>
+            </Box>
+
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "1rem" }}>
+                <strong>Manager:</strong> {employee.manager_id}
+              </Typography>
+            </Box>
           </Box>
-          <Box sx={{ display: "flex", gap: 3, mt: 5 }}>
+
+          {/* ======================== FORM FIELDS ======================== */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 3,
+              mt: 5,
+            }}
+          >
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
                 label="Start Date"
@@ -296,6 +284,7 @@ export default function LeaveModule() {
                 }
                 slotProps={{ textField: { fullWidth: true } }}
               />
+
               <DatePicker
                 label="End Date"
                 value={form.end_date}
@@ -305,6 +294,7 @@ export default function LeaveModule() {
                 slotProps={{ textField: { fullWidth: true } }}
               />
             </LocalizationProvider>
+
             <TextField
               label="Reason"
               value={form.reason}
@@ -316,29 +306,39 @@ export default function LeaveModule() {
               minRows={2}
             />
           </Box>
-          {/* Buttons */}
+
+          {/* ======================== BUTTONS ======================== */}
           <Box
-            sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 5 }}
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              justifyContent: "flex-end",
+              alignItems: { xs: "stretch", sm: "center" },
+              gap: 2,
+              mt: 5,
+            }}
           >
             <Button
               variant="outlined"
               onClick={clearAll}
-              sx={{ borderRadius: 3 }}
+              sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
             >
               Clear All
             </Button>
+
             <Button
               variant="contained"
               onClick={handleApply}
-              sx={{ borderRadius: 3 }}
+              sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
             >
               {editId ? "Update" : "Apply"}
             </Button>
+
             <Button
               variant="contained"
               color="secondary"
               onClick={() => setExportOpen(true)}
-              sx={{ borderRadius: 3 }}
+              sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
             >
               Export
             </Button>
@@ -346,7 +346,43 @@ export default function LeaveModule() {
         </CardContent>
       </Card>
 
-      {/* Edit Leave Dialog */}
+      {/* ======================== TABLE SECTION ======================== */}
+      <Card elevation={8} sx={{ zIndex: 1200, m: 4, p: 3, borderRadius: 2 }}>
+        <CardContent>
+          <Box
+            sx={{
+              width: "100%",
+              overflowX: "auto",
+              borderRadius: 2,
+              border: "1px solid #e0e0e0",
+              mt: 3,
+            }}
+          >
+            <Box sx={{ minWidth: "650px", height: 400 }}>
+              <DataGrid
+                rows={leaves}
+                columns={columns}
+                getRowId={(row) => row.id}
+                disableRowSelectionOnClick
+                pageSizeOptions={[5, 10, 20]}
+                sx={{
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: "#f5f5f5",
+                  },
+                  "& .MuiDataGrid-columnHeaderTitle": {
+                    fontWeight: "bold",
+                  },
+                  "& .MuiDataGrid-cell": {
+                    fontSize: "14px",
+                  },
+                }}
+              />
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* ======================== EDIT DIALOG ======================== */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth>
         <DialogTitle>Edit Leave</DialogTitle>
         <Divider />
@@ -381,7 +417,7 @@ export default function LeaveModule() {
         </DialogActions>
       </Dialog>
 
-      {/* Export Dialog */}
+      {/* ======================== EXPORT DIALOG ======================== */}
       <ExportDialog
         open={exportOpen}
         onClose={() => setExportOpen(false)}
@@ -395,13 +431,6 @@ export default function LeaveModule() {
               });
               return;
             }
-
-            const query = new URLSearchParams({
-              employee_id: employee.id,
-              start: startDate,
-              end: endDate,
-              status,
-            });
 
             const res = await fetch(
               `${API_ENDPOINTS.exportLeave(startDate, endDate)}&employee_id=${
@@ -428,7 +457,6 @@ export default function LeaveModule() {
               type: "success",
               msg: "Export successful",
             });
-
             setExportOpen(false);
           } catch (err) {
             setToast({
@@ -439,7 +467,8 @@ export default function LeaveModule() {
           }
         }}
       />
-      {/* Delete Confirmation Dialog */}
+
+      {/* ======================== DELETE CONFIRM ======================== */}
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
@@ -449,46 +478,10 @@ export default function LeaveModule() {
         confirmColor="error"
         icon={<DGDeleteIcon color="error" fontSize="medium" />}
         transition="slide"
-        loading={loading} // 🔹 pass loading state
+        loading={loading}
       />
 
-      <Card
-        elevation={8}
-        sx={{
-          zIndex: 1200,
-          m: 4,
-          p: 3,
-          borderRadius: 2,
-          mt: 5,
-        }}
-      >
-        <CardContent>
-          {/* Table */}
-          <Box sx={{ height: 400, mt: 5 }}>
-            <DataGrid
-              rows={leaves}
-              columns={columns}
-              getRowId={(row) => row.id}
-              disableRowSelectionOnClick
-              pageSizeOptions={[5, 10, 20]}
-              sx={{
-                "& .MuiDataGrid-columnHeaders": {
-                  backgroundColor: "#f5f5f5", // header background
-                },
-                "& .MuiDataGrid-columnHeaderTitle": {
-                  fontWeight: "bold", // header title bold
-                  color: "#333",
-                },
-                "& .MuiDataGrid-cell": {
-                  fontSize: "14px",
-                },
-              }}
-            />
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Toast */}
+      {/* ======================== TOAST ======================== */}
       <Snackbar
         open={!!toast?.open}
         autoHideDuration={4000}

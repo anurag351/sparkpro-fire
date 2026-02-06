@@ -27,21 +27,16 @@ import {
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { Edit, Delete, GetApp } from "@mui/icons-material";
-import Navigation from "../components/Navigation";
-import { API_ENDPOINTS } from "../config";
-import AppLoader from "../utility/AppLoader";
-import ExportDialog from "../components/ExportDialogProps";
-import SearchCardForEmployee from "../components/SearchCardForEmployee";
+import Navigation from "../../components/Navigation";
+import { API_ENDPOINTS } from "../../config";
+import AppLoader from "../../utility/AppLoader";
+import ExportDialog from "../../components/ExportDialogProps";
+import SearchCardForEmployee from "../../components/SearchCardForEmployee";
+import { Employee } from "../../utility/Employee";
 const EditAttendanceDialog = lazy(
-  () => import("../components/EditAttendanceDialog")
+  () => import("../../components/EditAttendanceDialog")
 );
-const RejectDialog = lazy(() => import("../components/RejectDialog"));
-interface EmployeeInfo {
-  id: string;
-  name: string;
-  role: string;
-  manager_id: string;
-}
+const RejectDialog = lazy(() => import("../../components/RejectDialog"));
 
 interface AttendanceForm {
   id?: string;
@@ -66,7 +61,7 @@ interface AttendanceRow {
 
 export default function AttendanceForOther() {
   const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-  const [employee, setEmployee] = useState<EmployeeInfo | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState<AttendanceForm>({
     date: dayjs(),
     time_in: null,
@@ -88,44 +83,6 @@ export default function AttendanceForOther() {
   const [showDetails, setShowDetails] = useState(false); // controls the next part of the screen
   const [loading, setLoading] = useState(false);
   // Fetch employee details by ID
-  const handleSearchEmployee = async () => {
-    if (!searchId.trim()) {
-      setToast({ open: true, type: "error", msg: "Please enter Employee ID" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(API_ENDPOINTS.employeeDetails(searchId));
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        const message =
-          errorData?.detail || errorData?.message || `Error ${res.status}`;
-        throw new Error(message);
-      }
-
-      const data = await res.json();
-      setEmployee(data);
-      if (data && data.id) {
-        setShowDetails(true);
-      }
-      //show rest of the page
-      setToast({
-        open: true,
-        type: "success",
-        msg: "Employee details loaded successfully",
-      });
-      setLoading(false);
-    } catch {
-      setToast({
-        open: true,
-        type: "error",
-        msg: "Employee not found or error fetching data",
-      });
-      setEmployee(null);
-      setShowDetails(false);
-    }
-  };
-
   useEffect(() => {
     if (employee) {
       fetchAttendance(employee);
@@ -394,7 +351,8 @@ export default function AttendanceForOther() {
           setSearchId(val);
           setShowDetails(false);
         }}
-        onSearch={handleSearchEmployee}
+        setEmployee={setEmployee}
+        setShowDetails={setShowDetails}
         placeholder="Enter Employee ID"
         buttonText="Search"
       />
@@ -417,26 +375,42 @@ export default function AttendanceForOther() {
             ) : (
               <Box
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
-                  gap: 4, // space between columns
+                  display: "flex",
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: { xs: 1.5, sm: 4 },
                   mt: 3,
+                  width: "100%",
                 }}
               >
-                <Typography>
-                  <strong>Name:</strong> {employee?.name}
-                </Typography>
-                <Typography>
-                  <strong>Role:</strong> {employee?.role}
-                </Typography>
-                <Typography>
-                  <strong>Manager:</strong> {employee?.manager_id}
-                </Typography>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "1rem" }}>
+                    <strong>Name:</strong> {employee?.name}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "1rem" }}>
+                    <strong>Role:</strong> {employee?.role}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontSize: "1rem" }}>
+                    <strong>Manager:</strong> {employee?.manager_id}
+                  </Typography>
+                </Box>
               </Box>
             )}
 
             {/* Attendance Fields */}
-            <Box sx={{ display: "flex", gap: 3, mt: 5 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                gap: 3,
+                mt: 5,
+              }}
+            >
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   label="Date"
@@ -471,32 +445,35 @@ export default function AttendanceForOther() {
             <Box
               sx={{
                 display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
                 justifyContent: "flex-end",
+                alignItems: { xs: "stretch", sm: "center" },
                 gap: 2,
                 mt: 5,
               }}
             >
               <Button
                 variant="outlined"
-                startIcon={<GetApp />}
-                onClick={() => setExportOpen(true)}
-                sx={{ borderRadius: 3 }}
-              >
-                Export
-              </Button>
-              <Button
-                variant="outlined"
                 onClick={clearAll}
-                sx={{ borderRadius: 3 }}
+                sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
               >
                 Clear All
               </Button>
               <Button
                 variant="contained"
                 onClick={handleSubmit}
-                sx={{ borderRadius: 3 }}
+                sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
               >
                 Save
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<GetApp />}
+                onClick={() => setExportOpen(true)}
+                sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
+              >
+                Export
               </Button>
             </Box>
           </CardContent>

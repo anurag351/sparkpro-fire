@@ -13,15 +13,21 @@ import {
   MenuItem,
   CircularProgress,
 } from "@mui/material";
+import { useToast } from "../utility/ToastProvider";
+import { API_ENDPOINTS } from "../config";
+import { Employee } from "../utility/Employee";
 
-type Role = "Employee" | "Manager" | "APD" | "PD" | "MD";
+type Role = "Employee" | "Manager" | "APD" | "PD" | "MD" | "HR" | "CA" | "CAP";
 
 const roleHierarchy: Record<Role | "Manager", Role[]> = {
   Employee: ["Employee"],
   Manager: ["Employee"],
-  APD: ["Manager", "Employee"],
-  PD: ["APD", "Manager", "Employee"],
-  MD: ["PD", "APD", "Manager", "Employee"],
+  APD: ["Manager", "Employee", "CA", "CAP"],
+  HR: ["Manager", "Employee", "CA", "CAP"],
+  CA: ["Manager", "Employee"],
+  CAP: ["Manager", "Employee"],
+  PD: ["APD", "Manager", "Employee", "CA", "CAP"],
+  MD: ["PD", "APD", "Manager", "Employee", "CA", "CAP"],
 };
 
 interface SearchCardProps {
@@ -29,7 +35,8 @@ interface SearchCardProps {
   role: Role; // current user role
   searchId: string;
   setSearchId: (value: string) => void;
-  onSearch: (role: string, id: string) => Promise<void> | void; // async search allowed
+  setShowDetails: React.Dispatch<React.SetStateAction<boolean>>;
+  setEmployee: React.Dispatch<React.SetStateAction<Employee | null>>;
   placeholder?: string;
   buttonText?: string;
 }
@@ -39,23 +46,58 @@ export default function SearchCardForEmployee({
   role,
   searchId,
   setSearchId,
-  onSearch,
+  setEmployee,
+  setShowDetails,
   placeholder = "Enter Employee ID",
   buttonText = "Search",
 }: SearchCardProps) {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [loading, setLoading] = useState(false);
-
+  const toast = useToast();
   // roleOptions handled inside
   const roleOptions = useMemo(() => {
     if (!role || role === "MD") return [];
     return roleHierarchy[role] || [];
   }, [role]);
 
-  const handleSearch = async () => {
+  const handleSearchEmployee = async (): Promise<void> => {
+    if (!searchId.trim()) {
+      toast.error("Please enter Employee ID");
+      return;
+    }
+    setLoading(true);
     try {
-      setLoading(true);
-      await onSearch(selectedRole, searchId);
+      let res: Response;
+      if (role == "MD") {
+        res = await fetch(
+          API_ENDPOINTS.employeeDetails(searchId.toUpperCase()),
+        );
+      } else {
+        res = await fetch(
+          API_ENDPOINTS.employeeDetailsByIDandRole(
+            searchId.toUpperCase(),
+            selectedRole,
+          ),
+        );
+      }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        const message =
+          errorData?.detail || errorData?.message || `Error ${res.status}`;
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      setEmployee(data);
+      if (data && data.id) {
+        setShowDetails(true);
+      }
+      //show rest of the page
+      toast.success("Employee details loaded successfully");
+    } catch {
+      toast.error("Employee not found or error fetching data");
+      setEmployee(null);
+      setShowDetails(false);
     } finally {
       setLoading(false);
     }
@@ -63,7 +105,7 @@ export default function SearchCardForEmployee({
 
   return (
     <Card
-      elevation={8}
+      elevation={9}
       sx={{
         zIndex: 1200,
         m: 4,
@@ -72,22 +114,36 @@ export default function SearchCardForEmployee({
         mt: 5,
       }}
     >
-      <CardContent>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+      <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            textAlign: { xs: "center", sm: "left" },
+            fontSize: { xs: "1.2rem", sm: "1.5rem" },
+          }}
+        >
           {title}
         </Typography>
 
+        {/* Search Layout */}
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
             gap: 2,
-            mt: 3,
+            mt: 5,
           }}
         >
-          {/* 🔹 Role Dropdown (hidden if MD) */}
+          {/* 🔹 Role Dropdown */}
           {role !== "MD" && roleOptions.length > 0 && (
-            <FormControl sx={{ minWidth: 150 }} size="small">
+            <FormControl
+              size="small"
+              sx={{
+                minWidth: { sm: 200, md: 250 },
+              }}
+            >
               <InputLabel id="role-label">Role</InputLabel>
               <Select
                 labelId="role-label"
@@ -106,20 +162,28 @@ export default function SearchCardForEmployee({
 
           {/* 🔹 Employee ID Field */}
           <TextField
+            fullWidth
             label={placeholder}
             variant="outlined"
             size="small"
             value={searchId}
             onChange={(e) => setSearchId(e.target.value)}
-            sx={{ width: "250px" }}
+            sx={{
+              width: { xs: "100%", sm: "250px" },
+            }}
           />
 
-          {/* 🔹 Search Button with Loader */}
+          {/* 🔹 Search Button */}
           <Button
             variant="contained"
-            onClick={handleSearch}
-            sx={{ borderRadius: 3, px: 3, minWidth: 100 }}
+            onClick={handleSearchEmployee}
             disabled={loading}
+            sx={{
+              borderRadius: 3,
+              px: 3,
+              minWidth: { xs: "100%", sm: 120 },
+              height: 40,
+            }}
           >
             {loading ? (
               <CircularProgress size={20} color="inherit" />

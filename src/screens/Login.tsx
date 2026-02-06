@@ -84,7 +84,12 @@ const Login: React.FC = () => {
 
       const data = await response.json();
       console.log("Login Success:", data);
-      if (data) {
+      if (data && data.temp_password) {
+        alert(
+          "You are logging in with a temporary password. Please reset your password after logging in.",
+        );
+        navigate(`/resetPassword`);
+      } else if (data) {
         const userData = await fetch(API_ENDPOINTS.employeeDetails(username), {
           method: "GET",
           headers: {
@@ -125,7 +130,7 @@ const Login: React.FC = () => {
 
   const requestPasswordAPI = async (empId: string) => {
     return new Promise((resolve) =>
-      setTimeout(() => resolve({ success: true }), 1500)
+      setTimeout(() => resolve({ success: true }), 1500),
     );
     // Later replace with:
     /*
@@ -231,7 +236,11 @@ const Login: React.FC = () => {
         <ConfirmDialog
           open={dialogOpen}
           title="Password Request"
-          message={`Agar aap password bhul gaye hai to Request Password kijiye aur Apne Manager se Temporary password prapt kijiye aur uske baad Reset Password karke naya password set kijiye.\nAfter creating new password aap portal par dubara login kijiye.`}
+          message={`If you have forgotten your password, please use the Request Password option.
+After that, contact your Manager to obtain a Temporary Password.
+Once you receive the Temporary Password, use the Reset Password option to set a new password.
+
+After successfully creating the new password, please log in to the portal again.`}
           onConfirm={async () => {
             setDialogLoading(true);
             try {

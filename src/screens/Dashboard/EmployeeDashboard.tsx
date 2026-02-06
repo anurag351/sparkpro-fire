@@ -118,7 +118,7 @@ const EmployeeDashboard: React.FC = () => {
                 }
                 sx={{ width: 170, height: 180, margin: "auto", border: 2 }}
               />
-              <Box item xs={12} md={4} sx={{ mt: 3 }} {...({} as any)}>
+              <Box xs={12} md={4} sx={{ mt: 3 }} {...({} as any)}>
                 <Typography variant="h5" fontWeight="bold" gutterBottom>
                   {userData?.name || "John Doe"}
                 </Typography>
@@ -244,7 +244,8 @@ const EmployeeDashboard: React.FC = () => {
                       <TableCell>{leave.end_date}</TableCell>
                       <TableCell>
                         {Math.ceil(
-                          (new Date(leave.end_date).getTime() -
+                          (1 +
+                            new Date(leave.end_date).getTime() -
                             new Date(leave.start_date).getTime()) /
                             (1000 * 60 * 60 * 24)
                         )}{" "}

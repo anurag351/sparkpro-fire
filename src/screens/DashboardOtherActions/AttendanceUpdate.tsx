@@ -30,13 +30,13 @@ import {
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { Edit, Delete, GetApp } from "@mui/icons-material";
-import Navigation from "../components/Navigation";
-import { API_ENDPOINTS } from "../config";
-import ExportDialog from "../components/ExportDialogProps";
+import Navigation from "../../components/Navigation";
+import { API_ENDPOINTS } from "../../config";
+import ExportDialog from "../../components/ExportDialogProps";
 import { GridDeleteForeverIcon } from "@mui/x-data-grid";
-import ConfirmDialog from "../components/ConfirmDialogDynamic";
+import ConfirmDialog from "../../components/ConfirmDialogDynamic";
 const EditAttendanceDialog = lazy(
-  () => import("../components/EditAttendanceDialog")
+  () => import("../../components/EditAttendanceDialog")
 );
 interface EmployeeInfo {
   id: string;
@@ -282,25 +282,42 @@ export default function AttendanceUpdate() {
           {/* Static Employee Info */}
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
-              gap: 4, // space between columns
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: { xs: 1.5, sm: 4 },
               mt: 3,
+              width: "100%",
             }}
           >
-            <Typography>
-              <strong>Name:</strong> {employee.name}
-            </Typography>
-            <Typography>
-              <strong>Role:</strong> {employee.role}
-            </Typography>
-            <Typography>
-              <strong>Manager:</strong> {employee.manager_id}
-            </Typography>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "1rem" }}>
+                <strong>Name:</strong> {employee.name}
+              </Typography>
+            </Box>
+
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "1rem" }}>
+                <strong>Role:</strong> {employee.role}
+              </Typography>
+            </Box>
+
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={{ fontSize: "1rem" }}>
+                <strong>Manager:</strong> {employee.manager_id}
+              </Typography>
+            </Box>
           </Box>
 
           {/* Attendance Fields */}
-          <Box sx={{ display: "flex", gap: 3, mt: 5 }}>
+          {/* ======================== FORM FIELDS ======================== */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 3,
+              mt: 5,
+            }}
+          >
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
                 label="Date"
@@ -330,30 +347,39 @@ export default function AttendanceUpdate() {
           </Box>
 
           {/* Buttons */}
+
           <Box
-            sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 5 }}
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              justifyContent: "flex-end",
+              alignItems: { xs: "stretch", sm: "center" },
+              gap: 2,
+              mt: 5,
+            }}
           >
             <Button
               variant="outlined"
-              startIcon={<GetApp />}
-              onClick={() => setExportOpen(true)}
-              sx={{ borderRadius: 3 }}
-            >
-              Export
-            </Button>
-            <Button
-              variant="outlined"
               onClick={clearAll}
-              sx={{ borderRadius: 3 }}
+              sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
             >
               Clear All
             </Button>
             <Button
               variant="contained"
               onClick={handleSubmit}
-              sx={{ borderRadius: 3 }}
+              sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
             >
               Save
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<GetApp />}
+              onClick={() => setExportOpen(true)}
+              sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
+            >
+              Export
             </Button>
           </Box>
         </CardContent>

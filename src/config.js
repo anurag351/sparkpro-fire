@@ -8,10 +8,14 @@ export const API_ENDPOINTS = {
     `${API_BASE_URL}/employees/createdBy/${employeeId}`,
   employeeDetails: (employeeId) =>
     `${API_BASE_URL}/employees/employeeID/${employeeId}`,
+  employeeDetailsByIDandRole: (employeeId, role) =>
+    `${API_BASE_URL}/employees/employeeID/${employeeId}/by/${role}`,
   updateEmployeePhoto: (employee_id) =>
     `${API_BASE_URL}/employees/${employee_id}/upload-photo`,
   showPhoto: (path) => `${API_BASE_URL}/static/passports/${path}`,
   employeeDetailsByRole: (role) => `${API_BASE_URL}/employees/${role}`,
+  employeeDetailsAdvancedSearch: (employee_id) =>
+    `${API_BASE_URL}/employees/advancedSearch`,
   tasks: (employeeId) => `${API_BASE_URL}/tasks/${employeeId}`,
   addAttendance: (employeeId) =>
     `${API_BASE_URL}/attendance/createdby/${employeeId}`,
@@ -45,4 +49,8 @@ export const API_ENDPOINTS = {
     `${API_BASE_URL}/leaves/updateStatus/${leaveId}/by/${createdBy}`,
   exportLeave: (start_date, end_date) =>
     `${API_BASE_URL}/leaves/export?start_date=${start_date}&end_date=${end_date}`,
+  caluculateUpdateSalary: (employeeId) =>
+    `${API_BASE_URL}/salary/calculate/${employeeId}`,
+  generateSalarySlip: (employeeId, year, month) =>
+    `${API_BASE_URL}/salary/slip/${employeeId}/${year}/${month}`,
 };

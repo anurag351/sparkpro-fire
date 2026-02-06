@@ -16,18 +16,12 @@ import {
   TextField,
   IconButton,
 } from "@mui/material";
+import SearchCardForEmployee from "../../components/SearchCardForEmployee";
+import { API_ENDPOINTS } from "../../config";
+import { generateTempPassword } from "../../utility/PasswordGenerator";
+import { Employee } from "../../utility/Employee";
+import Navigation from "../../components/Navigation";
 
-import Navigation from "../components/Navigation";
-import { API_ENDPOINTS } from "../config";
-import { generateTempPassword } from "../utility/PasswordGenerator";
-import SearchCardForEmployee from "../components/SearchCardForEmployee";
-
-interface EmployeeInfo {
-  id: string;
-  name: string;
-  role: string;
-  manager_id: string;
-}
 type Role = "Employee" | "Manager" | "APD" | "PD" | "MD";
 interface Props {
   currentUserRole?: Role;
@@ -44,60 +38,10 @@ export default function CreatePassword() {
   // Dialog states
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState<string>();
-  const [employee, setEmployee] = useState<EmployeeInfo | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
   const [searchId, setSearchId] = useState("");
   const [showDetails, setShowDetails] = useState(false); // controls the next part of the screen
   const [loading, setLoading] = useState(false);
-  // Fetch employee details by ID
-  const roleHierarchy: Record<Role | "Manager", Role[]> = {
-    Employee: ["Employee"],
-    Manager: ["Employee"],
-    APD: ["Manager", "Employee"],
-    PD: ["APD", "Manager", "Employee"],
-    MD: ["PD", "APD", "Manager", "Employee"],
-  };
-  const currentUserRole = userData.role;
-  const availableRolesForCurrentUser = roleHierarchy[
-    currentUserRole as Role
-  ] ?? ["Employee"];
-
-  const handleSearchEmployee = async () => {
-    if (!searchId.trim()) {
-      setToast({ open: true, type: "error", msg: "Please enter Employee ID" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(API_ENDPOINTS.employeeDetails(searchId));
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        const message =
-          errorData?.detail || errorData?.message || `Error ${res.status}`;
-        throw new Error(message);
-      }
-
-      const data = await res.json();
-      if (data && data.id) {
-        setEmployee(data);
-        setShowDetails(true); //show rest of the page
-      }
-
-      setToast({
-        open: true,
-        type: "success",
-        msg: "Employee details loaded successfully",
-      });
-      setLoading(false);
-    } catch {
-      setToast({
-        open: true,
-        type: "error",
-        msg: "Employee not found or error fetching data",
-      });
-      setEmployee(null);
-      setShowDetails(false);
-    }
-  };
 
   const handleApply = () => {
     setConfirmOpen(true);
@@ -158,7 +102,8 @@ export default function CreatePassword() {
           setSearchId(val);
           setShowDetails(false);
         }}
-        onSearch={handleSearchEmployee}
+        setEmployee={setEmployee}
+        setShowDetails={setShowDetails}
         placeholder="Enter Employee ID"
         buttonText="Search"
       />

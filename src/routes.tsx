@@ -7,12 +7,17 @@ import ManagerDashboard from "./screens/Dashboard/ManagerDashboard";
 import AdminDashboard from "./screens/Dashboard/AdminDashboard";
 import ClientDashboard from "./screens/Dashboard/ClientDashboard";
 import ResetPassword from "./screens/ResetPassword";
-import EmployeeOnboard from "./screens/EmployeeOnboarding";
-import AttendanceUpdate from "./screens/AttendanceUpdate";
-import LeaveModule from "./screens/LeaveModule";
-import AttendanceForOther from "./screens/AttendanceForOther";
-import LeaveModuleForOther from "./screens/LeaveModuleForOther";
-import CreatePassword from "./screens/CreateTempPassword";
+import EmployeeOnboard from "./screens/ActionDropdownScreens/EmployeeOnboarding";
+import AttendanceForOther from "./screens/ActionDropdownScreens/AttendanceForOther";
+import LeaveModuleForOther from "./screens/ActionDropdownScreens/LeaveModuleForOther";
+import AttendanceUpdate from "./screens/DashboardOtherActions/AttendanceUpdate";
+import CreatePassword from "./screens/ActionDropdownScreens/CreateTempPassword";
+import LeaveModule from "./screens/DashboardOtherActions/LeaveModule";
+import SalaryCalculatorCard from "./screens/ActionDropdownScreens/SalaryCalculatorCard";
+import WithdrawAdvancedSalary from "./screens/ActionDropdownScreens/WithdrawAdvanceSalary";
+import ShowEmployee from "./screens/ActionDropdownScreens/ShowEmployee";
+import EmployeeDetails from "./screens/EmployeeDetails";
+import WorkInProgress from "./utility/WorkInProgress";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -32,6 +37,18 @@ const AppRoutes: React.FC = () => {
         <Route path="/leaveupdate" element={<LeaveModuleForOther />} />
         <Route path="/onboardingemployee" element={<EmployeeOnboard />} />
         <Route path="/createpassword" element={<CreatePassword />} />
+        <Route path="/showemployee" element={<ShowEmployee />} />
+
+        <Route
+          path="/withdrawadvancedsalary"
+          element={<WithdrawAdvancedSalary />}
+        />
+        <Route
+          path="/calculateorgeneratesalary"
+          element={<SalaryCalculatorCard />}
+        />
+        <Route path="/employee-details" element={<EmployeeDetails />} />
+        <Route path="/inprogress" element={<WorkInProgress />} />
       </Routes>
     </Router>
   );

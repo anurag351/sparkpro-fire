@@ -23,18 +23,12 @@ import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import Navigation from "../components/Navigation";
-import { API_ENDPOINTS } from "../config";
-import ExportDialog from "../components/ExportDialogProps";
-import SearchCardForEmployee from "../components/SearchCardForEmployee";
-const RejectDialog = lazy(() => import("../components/RejectDialog"));
-
-interface EmployeeInfo {
-  id: string;
-  name: string;
-  role: string;
-  manager_id: string;
-}
+import Navigation from "../../components/Navigation";
+import { API_ENDPOINTS } from "../../config";
+import ExportDialog from "../../components/ExportDialogProps";
+import SearchCardForEmployee from "../../components/SearchCardForEmployee";
+import { Employee } from "../../utility/Employee";
+const RejectDialog = lazy(() => import("../../components/RejectDialog"));
 
 interface LeaveForm {
   start_date: Dayjs | null;
@@ -50,7 +44,7 @@ interface LeaveRecord {
   review_comment?: string;
 }
 
-export default function LeaveModule() {
+export default function LeaveModuleForOther() {
   const [form, setForm] = useState<LeaveForm>({
     start_date: null,
     end_date: null,
@@ -70,7 +64,7 @@ export default function LeaveModule() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [employee, setEmployee] = useState<EmployeeInfo | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportRange, setExportRange] = useState<{
     start: Dayjs | null;
@@ -80,43 +74,6 @@ export default function LeaveModule() {
   const [showDetails, setShowDetails] = useState(false); // controls the next part of the screen
   const [loading, setLoading] = useState(false);
   // Fetch employee details by ID
-  const handleSearchEmployee = async () => {
-    if (!searchId.trim()) {
-      setToast({ open: true, type: "error", msg: "Please enter Employee ID" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(API_ENDPOINTS.employeeDetails(searchId));
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        const message =
-          errorData?.detail || errorData?.message || `Error ${res.status}`;
-        throw new Error(message);
-      }
-
-      const data = await res.json();
-      if (data && data.id) {
-        setEmployee(data);
-        setShowDetails(true); //show rest of the page
-      }
-
-      setToast({
-        open: true,
-        type: "success",
-        msg: "Employee details loaded successfully",
-      });
-      setLoading(false);
-    } catch {
-      setToast({
-        open: true,
-        type: "error",
-        msg: "Employee not found or error fetching data",
-      });
-      setEmployee(null);
-      setShowDetails(false);
-    }
-  };
 
   useEffect(() => {
     // TODO: Fetch leaves from API
@@ -348,7 +305,8 @@ export default function LeaveModule() {
           setSearchId(val);
           setShowDetails(false);
         }}
-        onSearch={handleSearchEmployee}
+        setEmployee={setEmployee}
+        setShowDetails={setShowDetails}
         placeholder="Enter Employee ID"
         buttonText="Search"
       />
@@ -369,26 +327,44 @@ export default function LeaveModule() {
               Apply for Leave
             </Typography>
 
-            {/* Leave Form */}
+            {/* ======================== EMPLOYEE INFO ======================== */}
             <Box
               sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)", // 4 equal columns
-                gap: 4, // space between columns
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                gap: { xs: 1.5, sm: 4 },
                 mt: 3,
+                width: "100%",
               }}
             >
-              <Typography>
-                <strong>Name:</strong> {employee?.name}
-              </Typography>
-              <Typography>
-                <strong>Role:</strong> {employee?.role}
-              </Typography>
-              <Typography>
-                <strong>Manager:</strong> {employee?.manager_id}
-              </Typography>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: "1rem" }}>
+                  <strong>Name:</strong> {employee?.name}
+                </Typography>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: "1rem" }}>
+                  <strong>Role:</strong> {employee?.role}
+                </Typography>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: "1rem" }}>
+                  <strong>Manager:</strong> {employee?.manager_id}
+                </Typography>
+              </Box>
             </Box>
-            <Box sx={{ display: "flex", gap: 3, mt: 5 }}>
+
+            {/* ======================== FORM FIELDS ======================== */}
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                gap: 3,
+                mt: 5,
+              }}
+            >
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   label="Start Date"
@@ -398,6 +374,7 @@ export default function LeaveModule() {
                   }
                   slotProps={{ textField: { fullWidth: true } }}
                 />
+
                 <DatePicker
                   label="End Date"
                   value={form.end_date}
@@ -407,6 +384,7 @@ export default function LeaveModule() {
                   slotProps={{ textField: { fullWidth: true } }}
                 />
               </LocalizationProvider>
+
               <TextField
                 label="Reason"
                 value={form.reason}
@@ -418,11 +396,14 @@ export default function LeaveModule() {
                 minRows={2}
               />
             </Box>
-            {/* Buttons */}
+
+            {/* ======================== BUTTONS ======================== */}
             <Box
               sx={{
                 display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
                 justifyContent: "flex-end",
+                alignItems: { xs: "stretch", sm: "center" },
                 gap: 2,
                 mt: 5,
               }}
@@ -430,22 +411,24 @@ export default function LeaveModule() {
               <Button
                 variant="outlined"
                 onClick={clearAll}
-                sx={{ borderRadius: 3 }}
+                sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
               >
                 Clear All
               </Button>
+
               <Button
                 variant="contained"
                 onClick={handleApply}
-                sx={{ borderRadius: 3 }}
+                sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
               >
                 {editId ? "Update" : "Apply"}
               </Button>
+
               <Button
                 variant="contained"
                 color="secondary"
                 onClick={() => setExportOpen(true)}
-                sx={{ borderRadius: 3 }}
+                sx={{ height: 45, borderRadius: 3, pl: 5, pr: 5 }}
               >
                 Export
               </Button>
@@ -555,38 +538,37 @@ export default function LeaveModule() {
         }}
       />
       {showDetails && (
-        <Card
-          elevation={8}
-          sx={{
-            zIndex: 1200,
-            m: 4,
-            p: 3,
-            borderRadius: 2,
-            mt: 5,
-          }}
-        >
+        <Card elevation={8} sx={{ zIndex: 1200, m: 4, p: 3, borderRadius: 2 }}>
           <CardContent>
-            {/* Table */}
-            <Box sx={{ height: 400, mt: 5 }}>
-              <DataGrid
-                rows={leaves}
-                columns={columns}
-                getRowId={(row) => row.id}
-                disableRowSelectionOnClick
-                pageSizeOptions={[5, 10, 20]}
-                sx={{
-                  "& .MuiDataGrid-columnHeaders": {
-                    backgroundColor: "#f5f5f5", // header background
-                  },
-                  "& .MuiDataGrid-columnHeaderTitle": {
-                    fontWeight: "bold", // header title bold
-                    color: "#333",
-                  },
-                  "& .MuiDataGrid-cell": {
-                    fontSize: "14px",
-                  },
-                }}
-              />
+            <Box
+              sx={{
+                width: "100%",
+                overflowX: "auto",
+                borderRadius: 2,
+                border: "1px solid #e0e0e0",
+                mt: 3,
+              }}
+            >
+              <Box sx={{ minWidth: "650px", height: 400 }}>
+                <DataGrid
+                  rows={leaves}
+                  columns={columns}
+                  getRowId={(row) => row.id}
+                  disableRowSelectionOnClick
+                  pageSizeOptions={[5, 10, 20]}
+                  sx={{
+                    "& .MuiDataGrid-columnHeaders": {
+                      backgroundColor: "#f5f5f5",
+                    },
+                    "& .MuiDataGrid-columnHeaderTitle": {
+                      fontWeight: "bold",
+                    },
+                    "& .MuiDataGrid-cell": {
+                      fontSize: "14px",
+                    },
+                  }}
+                />
+              </Box>
             </Box>
           </CardContent>
         </Card>

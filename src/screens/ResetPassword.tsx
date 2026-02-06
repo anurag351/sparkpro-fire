@@ -9,8 +9,15 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ResponsiveAppBar from "../components/NavigationHome";
+import { generateTempPassword } from "../utility/PasswordGenerator";
+import { API_ENDPOINTS } from "../config";
 
 const ResetPassword: React.FC = () => {
+  const [toast, setToast] = useState<{
+    open: boolean;
+    type: "success" | "error";
+    msg: string;
+  } | null>(null);
   const [employeeId, setEmployeeId] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -40,7 +47,7 @@ const ResetPassword: React.FC = () => {
       !/\d/.test(newPassword)
     ) {
       setError(
-        "New Password must be at least 6 characters, include letters and digits"
+        "New Password must be at least 6 characters, include letters and digits",
       );
       return false;
     }
@@ -54,9 +61,42 @@ const ResetPassword: React.FC = () => {
     return true;
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (validateForm()) {
-      navigate(`/dashboard/${employeeId}`);
+      const payload = {
+        username: employeeId,
+        password: newPassword,
+        temp_password: false,
+      };
+      try {
+        const res = await fetch(API_ENDPOINTS.createPassword(employeeId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          const message =
+            errorData?.detail || errorData?.message || `Error ${res.status}`;
+          throw new Error(message);
+        }
+
+        setTimeout(() => {
+          setToast({
+            open: true,
+            type: "success",
+            msg: "Password Reset successfully",
+          });
+        }, 5000);
+        navigate(`/login`);
+        const data = await res.json();
+      } catch (err: any) {
+        setToast({
+          open: true,
+          type: "error",
+          msg: "Failed to Reset Password",
+        });
+      }
     }
   };
 

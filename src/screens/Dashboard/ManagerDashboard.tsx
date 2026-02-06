@@ -29,6 +29,8 @@ interface AttendanceLog {
 
 interface LeaveLog {
   leaveDate: string;
+  start_date: string;
+  end_date: string;
   status: "Approved" | "Pending" | "Rejected";
 }
 
@@ -110,7 +112,7 @@ const ManagerDashboard: React.FC = () => {
                 src={userData?.photoUrl || "/default-avatar.png"}
                 sx={{ width: 140, height: 140, margin: "auto" }}
               />
-              <Box item xs={12} md={4} sx={{ mt: 3 }} {...({} as any)}>
+              <Box xs={12} md={4} sx={{ mt: 3 }} {...({} as any)}>
                 <Typography variant="h5" fontWeight="bold" gutterBottom>
                   {userData?.name || "John Doe"}
                 </Typography>
@@ -220,7 +222,11 @@ const ManagerDashboard: React.FC = () => {
                 <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: "bold" }}>
-                      Leave Date
+                      Start Date
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>End Date</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>
+                      No of Days
                     </TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
                   </TableRow>
@@ -228,7 +234,17 @@ const ManagerDashboard: React.FC = () => {
                 <TableBody>
                   {pendingLeaves.map((leave, index) => (
                     <TableRow key={index}>
-                      <TableCell>{leave.leaveDate}</TableCell>
+                      <TableCell>{leave?.start_date}</TableCell>
+                      <TableCell>{leave?.end_date}</TableCell>
+                      <TableCell>
+                        {Math.ceil(
+                          (1 +
+                            new Date(leave.end_date).getTime() -
+                            new Date(leave.start_date).getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )}{" "}
+                        days
+                      </TableCell>
                       <TableCell>
                         <Box
                           sx={{
