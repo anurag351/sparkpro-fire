@@ -17,4 +17,8 @@ class Attendance(Base):
     approved_by = Column(String, ForeignKey("employees.id"), nullable=False)
     review_comment = Column(String(255), nullable=True) 
     employee = relationship("Employee", foreign_keys=[employee_id])
-    approver = relationship("Employee", foreign_keys=[employee_id])
+    approver = relationship(
+    "Employee",
+    foreign_keys=[approved_by],
+    overlaps="employee"
+)

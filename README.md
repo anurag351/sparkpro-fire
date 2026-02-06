@@ -19,17 +19,20 @@ fastapi-app
 ## Setup Instructions
 
 1. **Clone the repository:**
+
    ```
    git clone <repository-url>
    cd fastapi-app
    ```
 
 2. **Create a virtual environment:**
+
    ```
    python -m venv venv
    ```
 
 3. **Activate the virtual environment:**
+
    - On Windows:
      ```
      venv\Scripts\activate

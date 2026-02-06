@@ -2,17 +2,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
-from app.schemas.employee_schema import EmployeeCreate, EmployeeOut
+from app.schemas.employee_schema import EmployeeCreate, EmployeeOut,EmployeeResponse
 from app.models.employee import RoleEnum
 from app.services.employee_service import *
 router = APIRouter(prefix="/employees", tags=["employees"])
 
-@router.post("/", response_model=EmployeeOut)
-async def create_employee(payload: EmployeeCreate, db: AsyncSession = Depends(get_session)):
-    emp = await create_employee_service(db, payload)
+@router.post("/createdBy/{createdBy}", response_model=EmployeeOut)
+async def create_employee(createdBy:str, payload: EmployeeCreate, db: AsyncSession = Depends(get_session)):
+    emp = await create_employee_service(db, payload,createdBy)
     return emp
 
-@router.get("/employeeID/{employee_id}", response_model=EmployeeOut)
+@router.get("/employeeID/{employee_id}", response_model=EmployeeResponse)
 async def get_employee(employee_id: str, db: AsyncSession = Depends(get_session)):
     emp = await get_employee_by_id(db, employee_id)
     if not emp:
@@ -24,31 +24,21 @@ async def get_employee(employee_id: str, db: AsyncSession = Depends(get_session)
 async def get_all_employees(db: AsyncSession = Depends(get_session)):
     return await get_all_employees_service(db)
 
-# Get all managers
-@router.get("/managers", response_model=list[EmployeeOut])
-async def get_managers(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.MANAGER)
+# Fetch employees by filters
+@router.post("/advancedSearch", response_model=list[EmployeeResponse])
+async def advancedSearch(fetch_employee: FetchEmployee = None, db: AsyncSession = Depends(get_session)):
+    return await get_employees_by_role_service(db, fetch_employee)
 
-# Get all Employee
-@router.get("/employee", response_model=list[EmployeeOut])
-async def get_managers(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.EMPLOYEE)
-
-# Get all APDs
-
-@router.get("/apd", response_model=list[EmployeeOut])
-async def get_apds(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.APD)
-
-# Get all PDs
-@router.get("/pd", response_model=list[EmployeeOut])
-async def get_pds(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.PD)
-
-# Get all MDs
-@router.get("/md", response_model=list[EmployeeOut])
-async def get_mds(db: AsyncSession = Depends(get_session)):
-    return await get_employees_by_role_service(db, RoleEnum.MD)
+@router.get("/employeeID/{employee_id}/by/{role}", response_model=EmployeeResponse)
+async def get_employee_by_id_and_role(employee_id: str,role: str,db: AsyncSession = Depends(get_session)):
+    try:
+        employee = await get_employee_by_id_and_roleService(db, employee_id, role)
+        return employee
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # Update employee
 @router.put("/update/{employee_id}", response_model=EmployeeOut)
 async def update_employee(employee_id: str, payload: EmployeeCreate, db: AsyncSession = Depends(get_session)):
@@ -71,3 +61,4 @@ async def upload_employee_photo(
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+

@@ -8,6 +8,16 @@ class AttendanceBase(BaseModel):
     date: date
     time_in: time
     time_out: time
+    approved_by: str
+
+class AttendanceReject(BaseModel):
+    review_comment: str
+
+class AttendanceUpdate(BaseModel):
+    employee_id: str
+    date: date
+    time_in: time
+    time_out: time
 
 class AttendanceCreate(AttendanceBase):
     pass
@@ -21,8 +31,9 @@ class AttendanceResponse(BaseModel):
     hours_worked: Optional[int]
     overtime_hours: Optional[int]
     status: str
-    approved_by: Optional[int]
+    approved_by: str
+    review_comment: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes  = True
 

@@ -8,16 +8,10 @@ from typing import Optional
 from datetime import date
 from enum import Enum
 
-class RoleEnumStr(str, Enum):
-    Employee = "Employee"
-    Manager = "Manager"
-    APD = "APD"
-    PD = "PD"
-    MD = "MD"
 
 class EmployeeCreate(BaseModel):
     name: str
-    role: RoleEnumStr
+    role: RoleEnum
     manager_id: Optional[str] = None
     contact: Optional[str] = None
     salary_per_month: Optional[float] = None
@@ -46,6 +40,16 @@ class EmployeeCreate(BaseModel):
 class EmployeeResponse(EmployeeCreate):
     serial_no: int
     is_active: bool
+    id:str
+
+class FetchEmployee(BaseModel):
+    id: Optional[str]
+    is_active: Optional[bool]
+    role: Optional[str]
+    name: Optional[str]
+    aadhaar_number: Optional[str]
+    contact: Optional[str]
+    manager_id: Optional[str]
 
 class EmployeeOut(BaseModel):
     id: str
@@ -56,3 +60,5 @@ class EmployeeOut(BaseModel):
     is_active: bool
     class Config:
         from_attributes = True
+
+    

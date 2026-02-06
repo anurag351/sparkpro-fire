@@ -4,9 +4,9 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class LeaveStatusEnum(str, enum.Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+    PENDING = "Pending"
+    APPROVED = "Approved"
+    REJECTED = "Rejected"
 
 class Leave(Base):
     __tablename__ = "leaves"
@@ -17,7 +17,7 @@ class Leave(Base):
     status = Column(Enum(LeaveStatusEnum), default=LeaveStatusEnum.PENDING)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
-
+    review_comment=Column(String, nullable=True)
     approver_l1 = Column(String, ForeignKey("employees.id"), nullable=True)
     approver_l2 = Column(String, ForeignKey("employees.id"), nullable=True)
 

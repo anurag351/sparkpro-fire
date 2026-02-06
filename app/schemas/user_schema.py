@@ -5,6 +5,11 @@ from typing import Optional
 class UserCreate(BaseModel):
     username: str
     password: str
+    temp_password:bool
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
 
 class UserOut(BaseModel):
     id: int
