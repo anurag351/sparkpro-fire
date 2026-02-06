@@ -10,7 +10,7 @@ const actionButtonValues = [
   { label: "Show Employee", route: "/showemployee" },
   { label: "Onboarding Employee", route: "/onboardingemployee" },
   { label: "Create Temporary Password", route: "/createpassword" },
-  { label: "Update Employee Details", route: "/updateemployee" },
+  { label: "Update Employee Details", route: "/inprogress" },
   {
     label: "Calculate or Generate Salary",
     route: "/calculateorgeneratesalary",
